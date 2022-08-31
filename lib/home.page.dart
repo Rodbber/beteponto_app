@@ -9,6 +9,8 @@ import 'package:http/http.dart';
 import 'dart:convert';
 import 'package:localstorage/localstorage.dart';
 
+import 'package:fluttertoast/fluttertoast.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -22,7 +24,8 @@ class _HomePageState extends State<HomePage> {
   var _pontoAberto;
   var padraoUrl = "http://192.168.0.7:8000/api";
   var urlPonto = "/funcionario/ponto/inicio";
-  var tituloBtnPonto = "Iniciar ponto";
+  var tituloBtnPonto = "Bater ponto";
+  var pontoAbertoAs = null;
 
   _HomePageState() {
     _pontoAberto = null;
@@ -38,10 +41,11 @@ class _HomePageState extends State<HomePage> {
               _pontoAberto = response;
               //print(_pontoAberto);
               var obj = jsonDecode(response);
-              print(obj);
+              //print(obj);
               if (obj["funcionario_ponto_final"] == null) {
                 urlPonto = "/funcionario/ponto/fim";
-                tituloBtnPonto = "Finalizar ponto";
+                tituloBtnPonto = "Fechar ponto";
+                //pontoAbertoAs
               }
             });
           } catch (e) {
@@ -74,8 +78,9 @@ class _HomePageState extends State<HomePage> {
                     end: Alignment.bottomRight,
                     stops: [0.3, 1],
                     colors: [
-                      Color(0xFFF58524),
-                      Color(0XFFF92B7F),
+                      //#6DD5FA
+                      Color(0xFF2980B9),
+                      Color(0XFF6DD5FA),
                     ],
                   ),
                   borderRadius: BorderRadius.all(Radius.circular(5)),
@@ -85,7 +90,7 @@ class _HomePageState extends State<HomePage> {
                     child: Container(
                       alignment: Alignment.center,
                       child: Text(
-                        'Voltar',
+                        'Sair',
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 20,
@@ -135,8 +140,9 @@ class _HomePageState extends State<HomePage> {
                     end: Alignment.bottomRight,
                     stops: [0.3, 1],
                     colors: [
-                      Color(0xFFF58524),
-                      Color(0XFFF92B7F),
+                      //#E4E5E6
+                      Color(0xFF2980B9),
+                      Color(0XFF6DD5FA),
                     ],
                   ),
                   borderRadius: BorderRadius.all(Radius.circular(5)),
@@ -169,19 +175,44 @@ class _HomePageState extends State<HomePage> {
                           'Content-Type': 'application/json; charset=UTF-8',
                           'Authorization': 'Bearer $token',
                         },
-                      )
-                          .then((value) {
-                            try {
-                              var response = value.body;
-                              print(response);
-                            } catch (e) {
-                              print(e);
+                      ).then((value) {
+                        try {
+                          var response = value.body;
+                          //response = jsonDecode(response);
+                          Map<String, dynamic> data =
+                              new Map<String, dynamic>.from(
+                                  json.decode(response));
+                          //print(data['message']);
+
+                          setState(() {
+                            if (data['message'] == 'Ponto iniciado.') {
+                              urlPonto = "/funcionario/ponto/fim";
+                              tituloBtnPonto = "Fechar ponto";
+                            } else {
+                              urlPonto = "/funcionario/ponto/inicio";
+                              tituloBtnPonto = "Bater ponto";
                             }
-                          })
-                          .catchError((e) => print(e))
-                          .timeout(Duration(seconds: 10));
+                          });
+                          Fluttertoast.showToast(
+                              msg: data['message'],
+                              toastLength: Toast.LENGTH_LONG,
+                              fontSize: 20,
+                              backgroundColor: Colors.green);
+                          //print(response);
+                        } catch (e) {
+                          print(e);
+                        }
+                      }).catchError((e) {
+                        Map<String, dynamic> data =
+                            new Map<String, dynamic>.from(json.decode(e));
+                        Fluttertoast.showToast(
+                            msg: data['message'],
+                            toastLength: Toast.LENGTH_LONG,
+                            fontSize: 20,
+                            backgroundColor: Colors.red);
+                      }).timeout(Duration(seconds: 10));
                       /* Position position = await _determinePosition();
-              print(position); */
+                        print(position); */
                     },
                   ),
                 ),

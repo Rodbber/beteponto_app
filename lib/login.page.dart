@@ -104,8 +104,8 @@ class _LoginPageState extends State<LoginPage> {
                   end: Alignment.bottomRight,
                   stops: [0.3, 1],
                   colors: [
-                    Color(0xFFF58524),
-                    Color(0XFFF92B7F),
+                    Color(0xFF0052D4),
+                    Color(0XFF6FB1FC),
                   ],
                 ),
                 borderRadius: BorderRadius.all(Radius.circular(5)),
@@ -117,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: Text(
                       'Login',
                       style: TextStyle(
-                        color: Colors.black,
+                        color: Colors.white,
                         fontSize: 20,
                       ),
                     ),
@@ -152,8 +152,8 @@ class _LoginPageState extends State<LoginPage> {
                             Navigator.pushNamed(context, '/home');
                           }
 
-                          // _loginController.text = '';
-                          // _passwordController.text = '';
+                          _loginController.text = '';
+                          _passwordController.text = '';
                         })
                         .catchError((e) => print(e))
                         .timeout(Duration(seconds: 10));
