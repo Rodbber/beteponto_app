@@ -9,7 +9,8 @@ void main() {
   var initialpage = '/';
   final LocalStorage storage = new LocalStorage('todo_app');
   var storageJson = storage.getItem('@FuncionarioToken');
-  if (storageJson != null && jsonDecode(storageJson) != null) {
+  if (storageJson != null &&
+      (jsonDecode(storageJson) != null || jsonDecode(storageJson) != '')) {
     initialpage = '/home';
   }
   /* var storageDecode = jsonDecode(storageJson);

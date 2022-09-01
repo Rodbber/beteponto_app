@@ -124,7 +124,6 @@ class _HomePageState extends State<HomePage> {
                           })
                           .catchError((e) => print(e))
                           .timeout(Duration(seconds: 10));
-
                       print('retornando...');
                     },
                   ),
