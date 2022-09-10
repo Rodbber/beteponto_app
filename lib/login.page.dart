@@ -127,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
                     /* print(_loginController);
                     print(_passwordController); */
                     var url = Uri.parse(
-                        'http://192.168.0.7:8000/api/funcionario/login');
+                        'http://192.168.0.5:8000/api/funcionario/login');
                     post(
                       url,
                       headers: <String, String>{
@@ -146,14 +146,14 @@ class _LoginPageState extends State<LoginPage> {
                           //print(obj.runtimeType);
 
                           if (obj['token'] != null) {
-                            //print(obj['token']);
+                            print(obj['token']);
                             storage.setItem(
                                 '@FuncionarioToken', jsonEncode(obj));
                             Navigator.pushNamed(context, '/home');
                           }
 
-                          _loginController.text = '';
-                          _passwordController.text = '';
+                          /* _loginController.text = '';
+                          _passwordController.text = ''; */
                         })
                         .catchError((e) => print(e))
                         .timeout(Duration(seconds: 10));
