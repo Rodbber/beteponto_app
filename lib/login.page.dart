@@ -127,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
                     /* print(_loginController);
                     print(_passwordController); */
                     var url = Uri.parse(
-                        'http://192.168.0.5:8000/api/funcionario/login');
+                        'http://192.168.0.6:8000/api/funcionario/login');
                     post(
                       url,
                       headers: <String, String>{

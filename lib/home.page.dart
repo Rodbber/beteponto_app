@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/key.dart';
@@ -13,6 +11,10 @@ import 'package:localstorage/localstorage.dart';
 
 import 'package:fluttertoast/fluttertoast.dart';
 
+import 'package:intl/intl.dart';
+//import 'package:intl/date_symbol_data_http_request.dart';
+//initializeDateFormatting('pt_BR', null).then(() => runMyCode());
+
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -24,7 +26,7 @@ class _HomePageState extends State<HomePage> {
   final LocalStorage storage = new LocalStorage('todo_app');
 
   var _pontoAberto;
-  var padraoUrl = "http://192.168.0.5:8000/api";
+  var padraoUrl = "http://192.168.0.6:8000/api";
   var logout;
 
   AllUrlsPonto allUrlsPonto = AllUrlsPonto();
@@ -34,6 +36,7 @@ class _HomePageState extends State<HomePage> {
   var tituloBtnIntervalo;
   var pontoAbertoAs = null;
   var dadosIntervalo;
+  var historico;
   bool showbtnIntervalo = false;
 
   _HomePageState() {
@@ -53,6 +56,8 @@ class _HomePageState extends State<HomePage> {
     showbtnIntervalo = false;
 
     dadosIntervalo = {};
+
+    historico = [];
 
     logout = padraoUrl + "/funcionario/logout";
     _getStatusPonto(padraoUrl)
@@ -91,17 +96,39 @@ class _HomePageState extends State<HomePage> {
                       tituloBtnIntervalo =
                           allUrlsPonto.intervalo.urlIntervalos?.closeText;
                       dadosIntervalo.funcIntervaloInicioId = i['id'];
-                      print('caiu aqui');
+                      //print('caiu aqui');
                     }
                   }
                 }
 
-                print(dadosIntervalo.toString());
+                //print(dadosIntervalo.toString());
               }
             });
           } catch (e) {
             print(e);
           }
+        })
+        .catchError((e) => print(e))
+        .timeout(Duration(seconds: 10));
+
+    _getHistoricoPontos(padraoUrl)
+        .then((value) {
+          var response = value.body;
+          if (response.isEmpty) {
+            print('Resposta vazia!');
+            return;
+          }
+
+          Map<String, dynamic> obj =
+              new Map<String, dynamic>.from(json.decode(response));
+          //var obj = jsonDecode(response);
+
+          //print(obj);
+          setState(() {
+            if (obj['historico'].length != 0) {
+              historico = obj['historico'];
+            }
+          });
         })
         .catchError((e) => print(e))
         .timeout(Duration(seconds: 10));
@@ -378,11 +405,143 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+              Flexible(
+                flex: 1,
+                child: Container(
+                  padding: EdgeInsets.only(bottom: 20),
+                  margin: EdgeInsets.only(top: 20),
+                  alignment: Alignment.centerLeft,
+                  child: ListView.builder(
+                    itemCount: historico.length,
+                    itemBuilder: (context, index) {
+                      //print(historico[index]);
+                      var data = historico[index]['created_at'];
+                      final DateTime now = DateTime.parse(data);
+                      final DateFormat formatter =
+                          DateFormat('EEE, dd/MM/yyyy hh:mm:ss');
+                      final String formatted = formatter.format(now);
+                      String text = 'Bateu ponto';
+                      Icon icone = new Icon(Icons.meeting_room);
+                      var tipo = historico[index]['tipo'];
+                      if (tipo == 'ponto fim') {
+                        text = 'Fechou ponto';
+                        icone = Icon(Icons.door_back_door);
+                      } else if (tipo == 'intervalo inicio') {
+                        text = 'Saiu para intervalo';
+                        icone = Icon(Icons.bed);
+                      } else if (tipo == 'intervalo fim') {
+                        text = 'Voltou do intervalo';
+                        icone = Icon(Icons.directions_walk_outlined);
+                      }
+
+                      //print(formatted);
+
+                      //var data = DateTime(historico[int.parse(index)]['created_at']);
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFF000000),
+                            width: 1.0,
+                            style: BorderStyle.solid,
+                          ),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(10),
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: icone,
+                          title: Text(text),
+                          subtitle: Text(formatted),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ],
           )),
     );
   }
 }
+
+/* 
+children: <Widget>[
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          color: const Color(0xFF000000),
+                          width: 1.0,
+                          style: BorderStyle.solid,
+                        ),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Icon(Icons.meeting_room),
+                        title: Text('Bateu ponto'),
+                        subtitle: Text('Dom 11/09/2022 00:09'),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          color: const Color(0xFF000000),
+                          width: 1.0,
+                          style: BorderStyle.solid,
+                        ),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Icon(Icons.door_back_door),
+                        title: Text('Fechou ponto'),
+                        subtitle: Text('Dom 11/09/2022 00:09'),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          color: const Color(0xFF000000),
+                          width: 1.0,
+                          style: BorderStyle.solid,
+                        ),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Icon(Icons.bed),
+                        title: Text('Saiu para intervalo'),
+                        subtitle: Text('Dom 11/09/2022 00:09'),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          color: const Color(0xFF000000),
+                          width: 1.0,
+                          style: BorderStyle.solid,
+                        ),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Icon(Icons.directions_walk_outlined),
+                        title: Text('Voltou do intervalo'),
+                        subtitle: Text('Dom 11/09/2022 00:09'),
+                      ),
+                    ),
+                  ]
+
+ */
 
 class Tipos {
   String? open = '';
@@ -472,6 +631,24 @@ Future _getStatusPonto(padraoUrl) async {
   var token = storageDecode['token'];
 
   var url = Uri.parse(padraoUrl + '/funcionario/verificarPonto');
+  return get(
+    url,
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
+Future _getHistoricoPontos(padraoUrl) async {
+  final LocalStorage storage = new LocalStorage('todo_app');
+  var storageJson = storage.getItem('@FuncionarioToken');
+
+  var storageDecode = jsonDecode(storageJson);
+
+  var token = storageDecode['token'];
+
+  var url = Uri.parse(padraoUrl + '/funcionario/ponto/historico');
   return get(
     url,
     headers: <String, String>{
