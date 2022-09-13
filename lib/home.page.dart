@@ -37,7 +37,9 @@ class _HomePageState extends State<HomePage> {
   var pontoAbertoAs = null;
   var dadosIntervalo;
   var historico;
+  var funcao;
   bool showbtnIntervalo = false;
+  bool showbtnPonto = false;
 
   _HomePageState() {
     _pontoAberto = null;
@@ -59,6 +61,8 @@ class _HomePageState extends State<HomePage> {
 
     historico = [];
 
+    funcao = null;
+
     logout = padraoUrl + "/funcionario/logout";
     _getStatusPonto(padraoUrl)
         .then((value) {
@@ -73,18 +77,25 @@ class _HomePageState extends State<HomePage> {
               //print(_pontoAberto);
               var obj = jsonDecode(response);
               //print(obj['ponto']["funcionario_ponto_final"]);
+
+              if (obj['funcoes'].length != 0) {
+                funcao = obj['funcoes'][0];
+                dadosIntervalo = DadosIntervalo(
+                    funcionarioPausaId: funcao['id'],
+                    funcIntervaloInicioId: 0,
+                    funcionarioPontoInicioId: 0);
+              }
               if (obj['ponto']["funcionario_ponto_final"] == null) {
                 urlPonto = allUrlsPonto.ponto.urlPontos?.close;
                 tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
 
                 if (obj['funcoes'].length != 0) {
-                  dadosIntervalo = DadosIntervalo(
-                      funcionarioPausaId: obj['funcoes'][0]['id'],
-                      funcIntervaloInicioId: 0,
-                      funcionarioPontoInicioId: obj['ponto']['id']);
+                  dadosIntervalo.funcionarioPontoInicioId = obj['ponto']['id'];
                   showbtnIntervalo = true;
+                  //funcao = obj['funcoes'][0];
                   //print(showbtnIntervalo);
                 }
+
                 //print(obj['ponto']["func_intervalo_inicio"]);
                 if (obj['ponto']["func_intervalo_inicio"].length != 0) {
                   var dadosIntervalos = obj['ponto']["func_intervalo_inicio"];
@@ -96,6 +107,7 @@ class _HomePageState extends State<HomePage> {
                       tituloBtnIntervalo =
                           allUrlsPonto.intervalo.urlIntervalos?.closeText;
                       dadosIntervalo.funcIntervaloInicioId = i['id'];
+                      showbtnPonto = false;
                       //print('caiu aqui');
                     }
                   }
@@ -103,6 +115,11 @@ class _HomePageState extends State<HomePage> {
 
                 //print(dadosIntervalo.toString());
               }
+              if (dadosIntervalo != {} &&
+                  dadosIntervalo.funcIntervaloInicioId == 0) {
+                showbtnPonto = true;
+              }
+              //showbtnPonto = true;
             });
           } catch (e) {
             print(e);
@@ -110,7 +127,10 @@ class _HomePageState extends State<HomePage> {
         })
         .catchError((e) => print(e))
         .timeout(Duration(seconds: 10));
+    atualizaHistorico();
+  }
 
+  void atualizaHistorico() {
     _getHistoricoPontos(padraoUrl)
         .then((value) {
           var response = value.body;
@@ -206,97 +226,103 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              Container(
-                height: 60,
-                margin: EdgeInsets.only(top: 20),
-                alignment: Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    stops: [0.3, 1],
-                    colors: [
-                      //#E4E5E6
-                      Color(0xFF2980B9),
-                      Color(0XFF6DD5FA),
-                    ],
+              if (showbtnPonto)
+                Container(
+                  height: 60,
+                  margin: EdgeInsets.only(top: 20),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      stops: [0.3, 1],
+                      colors: [
+                        //#E4E5E6
+                        Color(0xFF2980B9),
+                        Color(0XFF6DD5FA),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.all(Radius.circular(5)),
                   ),
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
-                ),
-                child: SizedBox.expand(
-                  child: TextButton(
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: Text(
-                        tituloBtnPonto,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 20,
+                  child: SizedBox.expand(
+                    child: TextButton(
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: Text(
+                          tituloBtnPonto,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 20,
+                          ),
                         ),
                       ),
-                    ),
-                    onPressed: () {
-                      var storageJson = storage.getItem('@FuncionarioToken');
+                      onPressed: () {
+                        var storageJson = storage.getItem('@FuncionarioToken');
 
-                      var storageDecode = jsonDecode(storageJson);
+                        var storageDecode = jsonDecode(storageJson);
 
-                      var token = storageDecode['token'];
-                      var url = Uri.parse(padraoUrl + urlPonto);
-                      /* print('Bearer $token');
+                        var token = storageDecode['token'];
+                        var url = Uri.parse(padraoUrl + urlPonto);
+                        /* print('Bearer $token');
                       return; */
-                      //print(url);
-                      post(
-                        url,
-                        headers: <String, String>{
-                          'Content-Type': 'application/json; charset=UTF-8',
-                          'Authorization': 'Bearer $token',
-                        },
-                      ).then((value) {
-                        try {
-                          var response = value.body;
-                          //response = jsonDecode(response);
-                          Map<String, dynamic> data =
-                              new Map<String, dynamic>.from(
-                                  json.decode(response));
-                          //print(data['message']);
+                        //print(url);
+                        post(
+                          url,
+                          headers: <String, String>{
+                            'Content-Type': 'application/json; charset=UTF-8',
+                            'Authorization': 'Bearer $token',
+                          },
+                        ).then((value) {
+                          try {
+                            var response = value.body;
+                            //response = jsonDecode(response);
+                            Map<String, dynamic> data =
+                                new Map<String, dynamic>.from(
+                                    json.decode(response));
+                            //print(data['message']);
 
-                          setState(() {
-                            if (data['message'] == 'Ponto iniciado.') {
-                              urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-                              tituloBtnPonto =
-                                  allUrlsPonto.ponto.urlPontos?.closeText;
-                              showbtnIntervalo = true;
-                            } else {
-                              urlPonto = allUrlsPonto.ponto.urlPontos?.open;
-                              tituloBtnPonto =
-                                  allUrlsPonto.ponto.urlPontos?.openText;
-                              showbtnIntervalo = false;
-                            }
-                          });
+                            setState(() {
+                              if (data['message'] == 'Ponto iniciado.') {
+                                urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+                                tituloBtnPonto =
+                                    allUrlsPonto.ponto.urlPontos?.closeText;
+                                showbtnIntervalo = true;
+                                //showbtnPonto = false;
+                                dadosIntervalo.funcionarioPontoInicioId =
+                                    data['ponto_id'];
+                              } else {
+                                urlPonto = allUrlsPonto.ponto.urlPontos?.open;
+                                tituloBtnPonto =
+                                    allUrlsPonto.ponto.urlPontos?.openText;
+                                showbtnIntervalo = false;
+                                dadosIntervalo.funcionarioPontoInicioId = 0;
+                              }
+                            });
+                            atualizaHistorico();
+                            Fluttertoast.showToast(
+                                msg: data['message'],
+                                toastLength: Toast.LENGTH_LONG,
+                                fontSize: 20,
+                                backgroundColor: Colors.green);
+                            //print(response);
+                          } catch (e) {
+                            print(e);
+                          }
+                        }).catchError((e) {
+                          Map<String, dynamic> data =
+                              new Map<String, dynamic>.from(json.decode(e));
                           Fluttertoast.showToast(
                               msg: data['message'],
                               toastLength: Toast.LENGTH_LONG,
                               fontSize: 20,
-                              backgroundColor: Colors.green);
-                          //print(response);
-                        } catch (e) {
-                          print(e);
-                        }
-                      }).catchError((e) {
-                        Map<String, dynamic> data =
-                            new Map<String, dynamic>.from(json.decode(e));
-                        Fluttertoast.showToast(
-                            msg: data['message'],
-                            toastLength: Toast.LENGTH_LONG,
-                            fontSize: 20,
-                            backgroundColor: Colors.red);
-                      }).timeout(Duration(seconds: 10));
-                      /* Position position = await _determinePosition();
+                              backgroundColor: Colors.red);
+                        }).timeout(Duration(seconds: 10));
+                        /* Position position = await _determinePosition();
                         print(position); */
-                    },
+                      },
+                    ),
                   ),
                 ),
-              ),
               if (showbtnIntervalo)
                 Container(
                   height: 60,
@@ -338,6 +364,7 @@ class _HomePageState extends State<HomePage> {
                       return; */
                         //print(url);
                         Map<String, dynamic> data = new Map<String, dynamic>();
+                        /* print(dadosIntervalo); */
 
                         if (dadosIntervalo.funcIntervaloInicioId == 0) {
                           data['funcionario_ponto_inicio_id'] =
@@ -348,6 +375,8 @@ class _HomePageState extends State<HomePage> {
                           data['func_intervalo_inicio_id'] =
                               dadosIntervalo.funcIntervaloInicioId;
                         }
+
+                        //return;
 
                         /* print(data);
                         return; */
@@ -375,14 +404,17 @@ class _HomePageState extends State<HomePage> {
                                     .intervalo.urlIntervalos?.closeText;
                                 dadosIntervalo.funcIntervaloInicioId =
                                     data['intervalo_id'];
+                                showbtnPonto = false;
                               } else {
                                 urlIntervalo =
                                     allUrlsPonto.intervalo.urlIntervalos?.open;
                                 tituloBtnIntervalo = allUrlsPonto
                                     .intervalo.urlIntervalos?.openText;
                                 dadosIntervalo.funcIntervaloInicioId = 0;
+                                showbtnPonto = true;
                               }
                             });
+                            atualizaHistorico();
                             Fluttertoast.showToast(
                                 msg: data['message'],
                                 toastLength: Toast.LENGTH_LONG,
