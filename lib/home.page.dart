@@ -38,18 +38,18 @@ class _HomePageState extends State<HomePage> {
   var dadosIntervalo;
   var historico;
   var funcao;
+  String? token;
   bool showbtnIntervalo = false;
   bool showbtnPonto = false;
 
   _HomePageState() {
+    var storageJson = storage.getItem('@FuncionarioToken');
+
+    var storageDecode = jsonDecode(storageJson);
+
+    token = storageDecode['token'];
+
     _pontoAberto = null;
-    /* urlPonto = 'teste1';
-    tituloBtnPonto = 'teste2';
-    urlIntervalo = 'teste3';
-    tituloBtnIntervalo = 'teste4';
-    print(allUrlsPonto.toString());
-    logout = padraoUrl + "/funcionario/logout";
-    return; */
     urlPonto = allUrlsPonto.ponto.urlPontos?.open;
     tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.openText;
     urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.open;
@@ -196,12 +196,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     onPressed: () {
-                      var storageJson = storage.getItem('@FuncionarioToken');
-
-                      var storageDecode = jsonDecode(storageJson);
-
-                      var token = storageDecode['token'];
-
                       var url = Uri.parse(logout);
                       post(
                         url,
@@ -256,69 +250,71 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      onPressed: () {
-                        var storageJson = storage.getItem('@FuncionarioToken');
-
-                        var storageDecode = jsonDecode(storageJson);
-
-                        var token = storageDecode['token'];
+                      onPressed: () async {
                         var url = Uri.parse(padraoUrl + urlPonto);
-                        /* print('Bearer $token');
-                      return; */
-                        //print(url);
-                        post(
-                          url,
-                          headers: <String, String>{
-                            'Content-Type': 'application/json; charset=UTF-8',
-                            'Authorization': 'Bearer $token',
-                          },
-                        ).then((value) {
-                          try {
-                            var response = value.body;
-                            //response = jsonDecode(response);
-                            Map<String, dynamic> data =
-                                new Map<String, dynamic>.from(
-                                    json.decode(response));
-                            //print(data['message']);
-
-                            setState(() {
-                              if (data['message'] == 'Ponto iniciado.') {
-                                urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-                                tituloBtnPonto =
-                                    allUrlsPonto.ponto.urlPontos?.closeText;
-                                showbtnIntervalo = true;
-                                //showbtnPonto = false;
-                                dadosIntervalo.funcionarioPontoInicioId =
-                                    data['ponto_id'];
-                              } else {
-                                urlPonto = allUrlsPonto.ponto.urlPontos?.open;
-                                tituloBtnPonto =
-                                    allUrlsPonto.ponto.urlPontos?.openText;
-                                showbtnIntervalo = false;
-                                dadosIntervalo.funcionarioPontoInicioId = 0;
-                              }
-                            });
-                            atualizaHistorico();
+                        Position position = await _determinePosition();
+                        /* print(position);
+                        return; */
+                        try {
+                          final response = await post(
+                            url,
+                            headers: <String, String>{
+                              'Content-Type': 'application/json; charset=UTF-8',
+                              'Authorization': 'Bearer $token',
+                            },
+                            body: jsonEncode(<String, String>{
+                              'lat': position.latitude.toString(),
+                              'lng': position.longitude.toString(),
+                            }),
+                          ).timeout(Duration(seconds: 10));
+                          final statusCode = response.statusCode;
+                          //response = jsonDecode(response);
+                          Map<String, dynamic> data =
+                              new Map<String, dynamic>.from(
+                                  json.decode(response.body));
+                          //print(data['message']);
+                          if (statusCode != 200) {
                             Fluttertoast.showToast(
-                                msg: data['message'],
+                                msg: data['error'],
                                 toastLength: Toast.LENGTH_LONG,
                                 fontSize: 20,
-                                backgroundColor: Colors.green);
-                            //print(response);
-                          } catch (e) {
-                            print(e);
+                                backgroundColor: Colors.red);
+                            return;
                           }
-                        }).catchError((e) {
-                          Map<String, dynamic> data =
-                              new Map<String, dynamic>.from(json.decode(e));
+
+                          setState(() {
+                            if (data['message'] == 'Ponto iniciado.') {
+                              urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+                              tituloBtnPonto =
+                                  allUrlsPonto.ponto.urlPontos?.closeText;
+                              showbtnIntervalo = true;
+                              //showbtnPonto = false;
+                              dadosIntervalo.funcionarioPontoInicioId =
+                                  data['ponto_id'];
+                            } else {
+                              urlPonto = allUrlsPonto.ponto.urlPontos?.open;
+                              tituloBtnPonto =
+                                  allUrlsPonto.ponto.urlPontos?.openText;
+                              showbtnIntervalo = false;
+                              dadosIntervalo.funcionarioPontoInicioId = 0;
+                            }
+                          });
+                          atualizaHistorico();
                           Fluttertoast.showToast(
                               msg: data['message'],
                               toastLength: Toast.LENGTH_LONG,
                               fontSize: 20,
+                              backgroundColor: Colors.green);
+                        } catch (e) {
+                          /* Map<String, dynamic> data =
+                              new Map<String, dynamic>.from(
+                                  json.decode(e.toString())); */
+                          Fluttertoast.showToast(
+                              msg: 'Erro ao realizar busca.',
+                              toastLength: Toast.LENGTH_LONG,
+                              fontSize: 20,
                               backgroundColor: Colors.red);
-                        }).timeout(Duration(seconds: 10));
-                        /* Position position = await _determinePosition();
-                        print(position); */
+                        }
                       },
                     ),
                   ),
@@ -353,19 +349,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      onPressed: () {
-                        var storageJson = storage.getItem('@FuncionarioToken');
-
-                        var storageDecode = jsonDecode(storageJson);
-
-                        var token = storageDecode['token'];
+                      onPressed: () async {
                         var url = Uri.parse(padraoUrl + urlIntervalo);
-                        /* print('Bearer $token');
-                      return; */
-                        //print(url);
                         Map<String, dynamic> data = new Map<String, dynamic>();
-                        /* print(dadosIntervalo); */
-
                         if (dadosIntervalo.funcIntervaloInicioId == 0) {
                           data['funcionario_ponto_inicio_id'] =
                               dadosIntervalo.funcionarioPontoInicioId;
@@ -376,63 +362,67 @@ class _HomePageState extends State<HomePage> {
                               dadosIntervalo.funcIntervaloInicioId;
                         }
 
-                        //return;
+                        Position position = await _determinePosition();
+                        data['lat'] = position.latitude;
+                        data['lng'] = position.longitude;
 
-                        /* print(data);
-                        return; */
-                        post(
-                          url,
-                          body: jsonEncode(data),
-                          headers: <String, String>{
-                            'Content-Type': 'application/json; charset=UTF-8',
-                            'Authorization': 'Bearer $token',
-                          },
-                        ).then((value) {
-                          try {
-                            var response = value.body;
-                            //response = jsonDecode(response);
-                            Map<String, dynamic> data =
-                                new Map<String, dynamic>.from(
-                                    json.decode(response));
-                            //print(data['message']);
+                        try {
+                          var response = await post(
+                            url,
+                            body: jsonEncode(data),
+                            headers: <String, String>{
+                              'Content-Type': 'application/json; charset=UTF-8',
+                              'Authorization': 'Bearer $token',
+                            },
+                          ).timeout(Duration(seconds: 10));
+                          final statusCode = response.statusCode;
+                          var responseBody = response.body;
 
-                            setState(() {
-                              if (data['message'] == 'Intervalo iniciado.') {
-                                urlIntervalo =
-                                    allUrlsPonto.intervalo.urlIntervalos?.close;
-                                tituloBtnIntervalo = allUrlsPonto
-                                    .intervalo.urlIntervalos?.closeText;
-                                dadosIntervalo.funcIntervaloInicioId =
-                                    data['intervalo_id'];
-                                showbtnPonto = false;
-                              } else {
-                                urlIntervalo =
-                                    allUrlsPonto.intervalo.urlIntervalos?.open;
-                                tituloBtnIntervalo = allUrlsPonto
-                                    .intervalo.urlIntervalos?.openText;
-                                dadosIntervalo.funcIntervaloInicioId = 0;
-                                showbtnPonto = true;
-                              }
-                            });
-                            atualizaHistorico();
+                          //response = jsonDecode(response);
+                          Map<String, dynamic> dataResponse =
+                              new Map<String, dynamic>.from(
+                                  json.decode(responseBody));
+                          //print(data['message']);
+                          if (statusCode != 200) {
                             Fluttertoast.showToast(
-                                msg: data['message'],
+                                msg: dataResponse['error'],
                                 toastLength: Toast.LENGTH_LONG,
                                 fontSize: 20,
-                                backgroundColor: Colors.green);
-                            //print(response);
-                          } catch (e) {
-                            print(e);
+                                backgroundColor: Colors.red);
+                            return;
                           }
-                        }).catchError((e) {
-                          Map<String, dynamic> data =
-                              new Map<String, dynamic>.from(json.decode(e));
+                          setState(() {
+                            if (dataResponse['message'] ==
+                                'Intervalo iniciado.') {
+                              urlIntervalo =
+                                  allUrlsPonto.intervalo.urlIntervalos?.close;
+                              tituloBtnIntervalo = allUrlsPonto
+                                  .intervalo.urlIntervalos?.closeText;
+                              dadosIntervalo.funcIntervaloInicioId =
+                                  dataResponse['intervalo_id'];
+                              showbtnPonto = false;
+                            } else {
+                              urlIntervalo =
+                                  allUrlsPonto.intervalo.urlIntervalos?.open;
+                              tituloBtnIntervalo = allUrlsPonto
+                                  .intervalo.urlIntervalos?.openText;
+                              dadosIntervalo.funcIntervaloInicioId = 0;
+                              showbtnPonto = true;
+                            }
+                          });
+                          atualizaHistorico();
                           Fluttertoast.showToast(
                               msg: data['message'],
                               toastLength: Toast.LENGTH_LONG,
                               fontSize: 20,
+                              backgroundColor: Colors.green);
+                        } catch (e) {
+                          Fluttertoast.showToast(
+                              msg: 'Ocorreu um erro!',
+                              toastLength: Toast.LENGTH_LONG,
+                              fontSize: 20,
                               backgroundColor: Colors.red);
-                        }).timeout(Duration(seconds: 10));
+                        }
                       },
                     ),
                   ),
@@ -496,84 +486,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-/* 
-children: <Widget>[
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: const Color(0xFF000000),
-                          width: 1.0,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: Icon(Icons.meeting_room),
-                        title: Text('Bateu ponto'),
-                        subtitle: Text('Dom 11/09/2022 00:09'),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: const Color(0xFF000000),
-                          width: 1.0,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: Icon(Icons.door_back_door),
-                        title: Text('Fechou ponto'),
-                        subtitle: Text('Dom 11/09/2022 00:09'),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: const Color(0xFF000000),
-                          width: 1.0,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: Icon(Icons.bed),
-                        title: Text('Saiu para intervalo'),
-                        subtitle: Text('Dom 11/09/2022 00:09'),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: const Color(0xFF000000),
-                          width: 1.0,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(10),
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: Icon(Icons.directions_walk_outlined),
-                        title: Text('Voltou do intervalo'),
-                        subtitle: Text('Dom 11/09/2022 00:09'),
-                      ),
-                    ),
-                  ]
-
- */
 
 class Tipos {
   String? open = '';
