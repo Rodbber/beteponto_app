@@ -15,6 +15,9 @@ import 'package:intl/intl.dart';
 //import 'package:intl/date_symbol_data_http_request.dart';
 //initializeDateFormatting('pt_BR', null).then(() => runMyCode());
 
+import 'package:rounded_loading_button/rounded_loading_button.dart';
+import 'dart:async';
+
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -154,6 +157,267 @@ class _HomePageState extends State<HomePage> {
         .timeout(Duration(seconds: 10));
   }
 
+  final RoundedLoadingButtonController _btnController1 =
+      RoundedLoadingButtonController();
+
+  final RoundedLoadingButtonController _btnBaterPonto =
+      RoundedLoadingButtonController();
+
+  void _batendoPonto(RoundedLoadingButtonController controller) async {
+    var url = Uri.parse(padraoUrl + urlPonto);
+    Position position = await _determinePosition();
+    /* print(position);
+                      return; */
+    try {
+      final response = await post(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(<String, String>{
+          'lat': position.latitude.toString(),
+          'lng': position.longitude.toString(),
+        }),
+      ).timeout(Duration(seconds: 10));
+      controller.reset();
+      final statusCode = response.statusCode;
+      //response = jsonDecode(response);
+      Map<String, dynamic> data =
+          new Map<String, dynamic>.from(json.decode(response.body));
+      //print(data['message']);
+      if (statusCode != 200) {
+        Fluttertoast.showToast(
+            msg: data['error'],
+            toastLength: Toast.LENGTH_LONG,
+            fontSize: 20,
+            backgroundColor: Colors.red);
+        return;
+      }
+
+      setState(() {
+        if (data['message'] == 'Ponto iniciado.') {
+          urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+          tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
+          showbtnIntervalo = true;
+          //showbtnPonto = false;
+          dadosIntervalo.funcionarioPontoInicioId = data['ponto_id'];
+        } else {
+          urlPonto = allUrlsPonto.ponto.urlPontos?.open;
+          tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.openText;
+          showbtnIntervalo = false;
+          dadosIntervalo.funcionarioPontoInicioId = 0;
+        }
+      });
+      atualizaHistorico();
+
+      Fluttertoast.showToast(
+          msg: data['message'],
+          toastLength: Toast.LENGTH_LONG,
+          fontSize: 20,
+          backgroundColor: Colors.green);
+    } catch (e) {
+      controller.reset();
+      Fluttertoast.showToast(
+          msg: 'Erro ao realizar busca.',
+          toastLength: Toast.LENGTH_LONG,
+          fontSize: 20,
+          backgroundColor: Colors.red);
+    }
+  }
+
+  final RoundedLoadingButtonController _btnBaterPontoIntervalo =
+      RoundedLoadingButtonController();
+
+  void _batendoPontoIntervalo(RoundedLoadingButtonController controller,
+      RoundedLoadingButtonController controller2) async {
+    var url = Uri.parse(padraoUrl + urlIntervalo);
+    Map<String, dynamic> data = new Map<String, dynamic>();
+    if (dadosIntervalo.funcIntervaloInicioId == 0) {
+      data['funcionario_ponto_inicio_id'] =
+          dadosIntervalo.funcionarioPontoInicioId;
+      data['funcionario_pausa_id'] = dadosIntervalo.funcionarioPausaId;
+    } else {
+      data['func_intervalo_inicio_id'] = dadosIntervalo.funcIntervaloInicioId;
+    }
+
+    Position position = await _determinePosition();
+    data['lat'] = position.latitude;
+    data['lng'] = position.longitude;
+    /* print(data);
+    return; */
+    try {
+      var response = await post(
+        url,
+        body: jsonEncode(data),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(Duration(seconds: 10));
+      controller.reset();
+      final statusCode = response.statusCode;
+      var responseBody = response.body;
+
+      /* print(responseBody);
+      controller.reset();
+      return; */
+
+      //response = jsonDecode(response);
+      Map<String, dynamic> dataResponse =
+          new Map<String, dynamic>.from(json.decode(responseBody));
+
+      if (statusCode != 200) {
+        Fluttertoast.showToast(
+            msg: dataResponse['error'],
+            toastLength: Toast.LENGTH_LONG,
+            fontSize: 20,
+            backgroundColor: Colors.red);
+        return;
+      }
+
+      setState(() {
+        if (dataResponse['message'] == 'Intervalo iniciado.') {
+          urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.close;
+          tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.closeText;
+          dadosIntervalo.funcIntervaloInicioId = dataResponse['intervalo_id'];
+          showbtnPonto = false;
+        } else {
+          urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.open;
+          tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.openText;
+          dadosIntervalo.funcIntervaloInicioId = 0;
+          showbtnPonto = true;
+          controller2.reset();
+          /* if(controller2.currentState ){
+
+          } */
+
+        }
+      });
+      /* setState(() {
+        Timer(const Duration(seconds: 5), () {
+          print(showbtnPonto);
+          showbtnPonto = true;
+          print(showbtnPonto);
+          /* setState(() {
+                    showbtnPonto = true;
+                  }); */
+        });
+      }); */
+      atualizaHistorico();
+      Fluttertoast.showToast(
+          msg: dataResponse['message'],
+          toastLength: Toast.LENGTH_LONG,
+          fontSize: 20,
+          backgroundColor: Colors.green);
+    } catch (e, stacktrace) {
+      controller.reset();
+      Fluttertoast.showToast(
+          msg: 'Ocorreu um erro!',
+          toastLength: Toast.LENGTH_LONG,
+          fontSize: 20,
+          backgroundColor: Colors.red);
+    }
+  }
+
+  final RoundedLoadingButtonController _btnSair =
+      RoundedLoadingButtonController();
+
+  void _sair(RoundedLoadingButtonController controller) async {
+    setState(() {
+      showbtnIntervalo = false;
+      showbtnPonto = false;
+    });
+
+    var url = Uri.parse(logout);
+    try {
+      var response = await post(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(Duration(seconds: 10));
+      var responseBody = response.body;
+      //print(response);
+      controller.reset();
+      var obj = jsonDecode(responseBody);
+      storage.setItem('@FuncionarioToken', '');
+      Navigator.pop(context, '/');
+    } catch (e) {
+      Fluttertoast.showToast(
+          msg: 'Ocorreu um erro ao tentar sair!',
+          toastLength: Toast.LENGTH_LONG,
+          fontSize: 20,
+          backgroundColor: Colors.red);
+
+      _getStatusPonto(padraoUrl)
+          .then((value) {
+            try {
+              var response = value.body;
+              if (response.isEmpty) {
+                print('Resposta vazia!');
+                return;
+              }
+              setState(() {
+                _pontoAberto = response;
+                //print(_pontoAberto);
+                var obj = jsonDecode(response);
+                //print(obj['ponto']["funcionario_ponto_final"]);
+
+                if (obj['funcoes'].length != 0) {
+                  funcao = obj['funcoes'][0];
+                  dadosIntervalo = DadosIntervalo(
+                      funcionarioPausaId: funcao['id'],
+                      funcIntervaloInicioId: 0,
+                      funcionarioPontoInicioId: 0);
+                }
+                if (obj['ponto']["funcionario_ponto_final"] == null) {
+                  urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+                  tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
+
+                  if (obj['funcoes'].length != 0) {
+                    dadosIntervalo.funcionarioPontoInicioId =
+                        obj['ponto']['id'];
+                    showbtnIntervalo = true;
+                    //funcao = obj['funcoes'][0];
+                    //print(showbtnIntervalo);
+                  }
+
+                  //print(obj['ponto']["func_intervalo_inicio"]);
+                  if (obj['ponto']["func_intervalo_inicio"].length != 0) {
+                    var dadosIntervalos = obj['ponto']["func_intervalo_inicio"];
+                    for (final i in dadosIntervalos) {
+                      //print(i);
+                      if (i['func_intervalo_fim'] == null) {
+                        urlIntervalo =
+                            allUrlsPonto.intervalo.urlIntervalos?.close;
+                        tituloBtnIntervalo =
+                            allUrlsPonto.intervalo.urlIntervalos?.closeText;
+                        dadosIntervalo.funcIntervaloInicioId = i['id'];
+                        showbtnPonto = false;
+                        //print('caiu aqui');
+                      }
+                    }
+                  }
+
+                  //print(dadosIntervalo.toString());
+                }
+                if (dadosIntervalo != {} &&
+                    dadosIntervalo.funcIntervaloInicioId == 0) {
+                  showbtnPonto = true;
+                }
+                //showbtnPonto = true;
+              });
+            } catch (e) {
+              print(e);
+            }
+          })
+          .catchError((e) => print(e))
+          .timeout(Duration(seconds: 10));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,261 +433,93 @@ class _HomePageState extends State<HomePage> {
             children: [
               Container(
                 height: 60,
+                margin: EdgeInsets.only(top: 5),
                 alignment: Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    stops: [0.3, 1],
-                    colors: [
-                      //#6DD5FA
-                      Color(0xFF2980B9),
-                      Color(0XFF6DD5FA),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.all(Radius.circular(5)),
-                ),
-                child: SizedBox.expand(
-                  child: TextButton(
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Sair',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 20,
-                        ),
-                      ),
+                // decoration: BoxDecoration(
+                //   gradient: LinearGradient(
+                //     begin: Alignment.topLeft,
+                //     end: Alignment.bottomRight,
+                //     stops: [0.3, 1],
+                //     colors: [
+                //       //#E4E5E6
+                //       Color(0xFF2980B9),
+                //       Color(0XFF6DD5FA),
+                //     ],
+                //   ),
+                //   borderRadius: BorderRadius.all(Radius.circular(5)),
+                // ),
+                child: RoundedLoadingButton(
+                  color: Colors.blue[300],
+                  // successColor: Colors.amber,
+                  controller: _btnSair,
+                  onPressed: () => _sair(_btnSair),
+                  valueColor: Colors.black,
+
+                  borderRadius: 10,
+                  child: Text(
+                    'Sair',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
                     ),
-                    onPressed: () {
-                      var url = Uri.parse(logout);
-                      post(
-                        url,
-                        headers: <String, String>{
-                          'Content-Type': 'application/json; charset=UTF-8',
-                          'Authorization': 'Bearer $token',
-                        },
-                      )
-                          .then((value) {
-                            try {
-                              var response = value.body;
-                              print(response);
-                              var obj = jsonDecode(response);
-                              storage.setItem('@FuncionarioToken', '');
-                              Navigator.pop(context, '/');
-                            } catch (e) {}
-                          })
-                          .catchError((e) => print(e))
-                          .timeout(Duration(seconds: 10));
-                      print('retornando...');
-                    },
                   ),
                 ),
               ),
               if (showbtnPonto)
                 Container(
                   height: 60,
-                  margin: EdgeInsets.only(top: 20),
+                  margin: EdgeInsets.only(top: 10),
                   alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      stops: [0.3, 1],
-                      colors: [
-                        //#E4E5E6
-                        Color(0xFF2980B9),
-                        Color(0XFF6DD5FA),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(5)),
-                  ),
-                  child: SizedBox.expand(
-                    child: TextButton(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          tituloBtnPonto,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ),
-                      onPressed: () async {
-                        var url = Uri.parse(padraoUrl + urlPonto);
-                        Position position = await _determinePosition();
-                        /* print(position);
-                        return; */
-                        try {
-                          final response = await post(
-                            url,
-                            headers: <String, String>{
-                              'Content-Type': 'application/json; charset=UTF-8',
-                              'Authorization': 'Bearer $token',
-                            },
-                            body: jsonEncode(<String, String>{
-                              'lat': position.latitude.toString(),
-                              'lng': position.longitude.toString(),
-                            }),
-                          ).timeout(Duration(seconds: 10));
-                          final statusCode = response.statusCode;
-                          //response = jsonDecode(response);
-                          Map<String, dynamic> data =
-                              new Map<String, dynamic>.from(
-                                  json.decode(response.body));
-                          //print(data['message']);
-                          if (statusCode != 200) {
-                            Fluttertoast.showToast(
-                                msg: data['error'],
-                                toastLength: Toast.LENGTH_LONG,
-                                fontSize: 20,
-                                backgroundColor: Colors.red);
-                            return;
-                          }
+                  // decoration: BoxDecoration(
+                  //   gradient: LinearGradient(
+                  //     begin: Alignment.topLeft,
+                  //     end: Alignment.bottomRight,
+                  //     stops: [0.3, 1],
+                  //     colors: [
+                  //       //#E4E5E6
+                  //       Color(0xFF2980B9),
+                  //       Color(0XFF6DD5FA),
+                  //     ],
+                  //   ),
+                  //   borderRadius: BorderRadius.all(Radius.circular(5)),
+                  // ),
+                  child: RoundedLoadingButton(
+                    color: Colors.blue[300],
+                    // successColor: Colors.amber,
+                    controller: _btnBaterPonto,
+                    onPressed: () => _batendoPonto(_btnBaterPonto),
+                    valueColor: Colors.black,
 
-                          setState(() {
-                            if (data['message'] == 'Ponto iniciado.') {
-                              urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-                              tituloBtnPonto =
-                                  allUrlsPonto.ponto.urlPontos?.closeText;
-                              showbtnIntervalo = true;
-                              //showbtnPonto = false;
-                              dadosIntervalo.funcionarioPontoInicioId =
-                                  data['ponto_id'];
-                            } else {
-                              urlPonto = allUrlsPonto.ponto.urlPontos?.open;
-                              tituloBtnPonto =
-                                  allUrlsPonto.ponto.urlPontos?.openText;
-                              showbtnIntervalo = false;
-                              dadosIntervalo.funcionarioPontoInicioId = 0;
-                            }
-                          });
-                          atualizaHistorico();
-                          Fluttertoast.showToast(
-                              msg: data['message'],
-                              toastLength: Toast.LENGTH_LONG,
-                              fontSize: 20,
-                              backgroundColor: Colors.green);
-                        } catch (e) {
-                          /* Map<String, dynamic> data =
-                              new Map<String, dynamic>.from(
-                                  json.decode(e.toString())); */
-                          Fluttertoast.showToast(
-                              msg: 'Erro ao realizar busca.',
-                              toastLength: Toast.LENGTH_LONG,
-                              fontSize: 20,
-                              backgroundColor: Colors.red);
-                        }
-                      },
+                    borderRadius: 10,
+                    child: Text(
+                      tituloBtnPonto,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
                 ),
               if (showbtnIntervalo)
                 Container(
                   height: 60,
-                  margin: EdgeInsets.only(top: 20),
+                  margin: EdgeInsets.only(top: 10),
                   alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      stops: [0.3, 1],
-                      colors: [
-                        //#E4E5E6
-                        Color(0xFF2980B9),
-                        Color(0XFF6DD5FA),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(5)),
-                  ),
-                  child: SizedBox.expand(
-                    child: TextButton(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          tituloBtnIntervalo,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 20,
-                          ),
-                        ),
+                  child: RoundedLoadingButton(
+                    color: Colors.blue[300],
+                    // successColor: Colors.amber,
+                    controller: _btnBaterPontoIntervalo,
+                    onPressed: () => _batendoPontoIntervalo(
+                        _btnBaterPontoIntervalo, _btnBaterPonto),
+                    valueColor: Colors.black,
+
+                    borderRadius: 10,
+                    child: Text(
+                      tituloBtnIntervalo,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
                       ),
-                      onPressed: () async {
-                        var url = Uri.parse(padraoUrl + urlIntervalo);
-                        Map<String, dynamic> data = new Map<String, dynamic>();
-                        if (dadosIntervalo.funcIntervaloInicioId == 0) {
-                          data['funcionario_ponto_inicio_id'] =
-                              dadosIntervalo.funcionarioPontoInicioId;
-                          data['funcionario_pausa_id'] =
-                              dadosIntervalo.funcionarioPausaId;
-                        } else {
-                          data['func_intervalo_inicio_id'] =
-                              dadosIntervalo.funcIntervaloInicioId;
-                        }
-
-                        Position position = await _determinePosition();
-                        data['lat'] = position.latitude;
-                        data['lng'] = position.longitude;
-
-                        try {
-                          var response = await post(
-                            url,
-                            body: jsonEncode(data),
-                            headers: <String, String>{
-                              'Content-Type': 'application/json; charset=UTF-8',
-                              'Authorization': 'Bearer $token',
-                            },
-                          ).timeout(Duration(seconds: 10));
-                          final statusCode = response.statusCode;
-                          var responseBody = response.body;
-
-                          //response = jsonDecode(response);
-                          Map<String, dynamic> dataResponse =
-                              new Map<String, dynamic>.from(
-                                  json.decode(responseBody));
-                          //print(data['message']);
-                          if (statusCode != 200) {
-                            Fluttertoast.showToast(
-                                msg: dataResponse['error'],
-                                toastLength: Toast.LENGTH_LONG,
-                                fontSize: 20,
-                                backgroundColor: Colors.red);
-                            return;
-                          }
-                          setState(() {
-                            if (dataResponse['message'] ==
-                                'Intervalo iniciado.') {
-                              urlIntervalo =
-                                  allUrlsPonto.intervalo.urlIntervalos?.close;
-                              tituloBtnIntervalo = allUrlsPonto
-                                  .intervalo.urlIntervalos?.closeText;
-                              dadosIntervalo.funcIntervaloInicioId =
-                                  dataResponse['intervalo_id'];
-                              showbtnPonto = false;
-                            } else {
-                              urlIntervalo =
-                                  allUrlsPonto.intervalo.urlIntervalos?.open;
-                              tituloBtnIntervalo = allUrlsPonto
-                                  .intervalo.urlIntervalos?.openText;
-                              dadosIntervalo.funcIntervaloInicioId = 0;
-                              showbtnPonto = true;
-                            }
-                          });
-                          atualizaHistorico();
-                          Fluttertoast.showToast(
-                              msg: data['message'],
-                              toastLength: Toast.LENGTH_LONG,
-                              fontSize: 20,
-                              backgroundColor: Colors.green);
-                        } catch (e) {
-                          Fluttertoast.showToast(
-                              msg: 'Ocorreu um erro!',
-                              toastLength: Toast.LENGTH_LONG,
-                              fontSize: 20,
-                              backgroundColor: Colors.red);
-                        }
-                      },
                     ),
                   ),
                 ),
