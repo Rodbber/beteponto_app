@@ -287,7 +287,7 @@ class _HomePageState extends State<HomePage> {
           tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.openText;
           dadosIntervalo.funcIntervaloInicioId = 0;
           showbtnPonto = true;
-          controller2.reset();
+          //controller2.reset();
           /* if(controller2.currentState ){
 
           } */
