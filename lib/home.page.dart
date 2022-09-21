@@ -1,7 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/foundation/key.dart';
-import 'package:flutter/src/widgets/framework.dart';
 
 import 'package:geolocator/geolocator.dart';
 
@@ -17,6 +14,11 @@ import 'package:intl/intl.dart';
 
 import 'package:rounded_loading_button/rounded_loading_button.dart';
 import 'dart:async';
+
+// infinity scroll
+//import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+//import 'package:bateponto_app/character_summary.dart';
+//import 'package:bateponto_app/remote_api.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -39,11 +41,14 @@ class _HomePageState extends State<HomePage> {
   var tituloBtnIntervalo;
   var pontoAbertoAs = null;
   var dadosIntervalo;
-  var historico;
+  List historico = [];
   var funcao;
   String? token;
   bool showbtnIntervalo = false;
   bool showbtnPonto = false;
+  bool maisDados = true;
+  bool isLoading = false;
+  String historicoRoute = '/funcionario/ponto/historico/';
 
   _HomePageState() {
     var storageJson = storage.getItem('@FuncionarioToken');
@@ -62,7 +67,7 @@ class _HomePageState extends State<HomePage> {
 
     dadosIntervalo = {};
 
-    historico = [];
+    //historico = [];
 
     funcao = null;
 
@@ -130,7 +135,7 @@ class _HomePageState extends State<HomePage> {
         })
         .catchError((e) => print(e))
         .timeout(Duration(seconds: 10));
-    atualizaHistorico();
+    //refresh()
   }
 
   void atualizaHistorico() {
@@ -209,7 +214,7 @@ class _HomePageState extends State<HomePage> {
           dadosIntervalo.funcionarioPontoInicioId = 0;
         }
       });
-      atualizaHistorico();
+      refresh();
 
       Fluttertoast.showToast(
           msg: data['message'],
@@ -287,11 +292,6 @@ class _HomePageState extends State<HomePage> {
           tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.openText;
           dadosIntervalo.funcIntervaloInicioId = 0;
           showbtnPonto = true;
-          //controller2.reset();
-          /* if(controller2.currentState ){
-
-          } */
-
         }
       });
       /* setState(() {
@@ -304,7 +304,7 @@ class _HomePageState extends State<HomePage> {
                   }); */
         });
       }); */
-      atualizaHistorico();
+      refresh();
       Fluttertoast.showToast(
           msg: dataResponse['message'],
           toastLength: Toast.LENGTH_LONG,
@@ -351,89 +351,173 @@ class _HomePageState extends State<HomePage> {
           fontSize: 20,
           backgroundColor: Colors.red);
 
-      _getStatusPonto(padraoUrl)
-          .then((value) {
-            try {
-              var response = value.body;
-              if (response.isEmpty) {
-                print('Resposta vazia!');
-                return;
-              }
-              setState(() {
-                _pontoAberto = response;
-                //print(_pontoAberto);
-                var obj = jsonDecode(response);
-                //print(obj['ponto']["funcionario_ponto_final"]);
+      _getStatusPonto(padraoUrl).then((value) {
+        try {
+          var response = value.body;
+          if (response.isEmpty) {
+            print('Resposta vazia!');
+            return;
+          }
+          setState(() {
+            _pontoAberto = response;
+            //print(_pontoAberto);
+            var obj = jsonDecode(response);
+            //print(obj['ponto']["funcionario_ponto_final"]);
 
-                if (obj['funcoes'].length != 0) {
-                  funcao = obj['funcoes'][0];
-                  dadosIntervalo = DadosIntervalo(
-                      funcionarioPausaId: funcao['id'],
-                      funcIntervaloInicioId: 0,
-                      funcionarioPontoInicioId: 0);
-                }
-                if (obj['ponto']["funcionario_ponto_final"] == null) {
-                  urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-                  tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
-
-                  if (obj['funcoes'].length != 0) {
-                    dadosIntervalo.funcionarioPontoInicioId =
-                        obj['ponto']['id'];
-                    showbtnIntervalo = true;
-                    //funcao = obj['funcoes'][0];
-                    //print(showbtnIntervalo);
-                  }
-
-                  //print(obj['ponto']["func_intervalo_inicio"]);
-                  if (obj['ponto']["func_intervalo_inicio"].length != 0) {
-                    var dadosIntervalos = obj['ponto']["func_intervalo_inicio"];
-                    for (final i in dadosIntervalos) {
-                      //print(i);
-                      if (i['func_intervalo_fim'] == null) {
-                        urlIntervalo =
-                            allUrlsPonto.intervalo.urlIntervalos?.close;
-                        tituloBtnIntervalo =
-                            allUrlsPonto.intervalo.urlIntervalos?.closeText;
-                        dadosIntervalo.funcIntervaloInicioId = i['id'];
-                        showbtnPonto = false;
-                        //print('caiu aqui');
-                      }
-                    }
-                  }
-
-                  //print(dadosIntervalo.toString());
-                }
-                if (dadosIntervalo != {} &&
-                    dadosIntervalo.funcIntervaloInicioId == 0) {
-                  showbtnPonto = true;
-                }
-                //showbtnPonto = true;
-              });
-            } catch (e) {
-              print(e);
+            if (obj['funcoes'].length != 0) {
+              funcao = obj['funcoes'][0];
+              dadosIntervalo = DadosIntervalo(
+                  funcionarioPausaId: funcao['id'],
+                  funcIntervaloInicioId: 0,
+                  funcionarioPontoInicioId: 0);
             }
-          })
-          .catchError((e) => print(e))
-          .timeout(Duration(seconds: 10));
+            if (obj['ponto']["funcionario_ponto_final"] == null) {
+              urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+              tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
+
+              if (obj['funcoes'].length != 0) {
+                dadosIntervalo.funcionarioPontoInicioId = obj['ponto']['id'];
+                showbtnIntervalo = true;
+                //funcao = obj['funcoes'][0];
+                //print(showbtnIntervalo);
+              }
+
+              //print(obj['ponto']["func_intervalo_inicio"]);
+              if (obj['ponto']["func_intervalo_inicio"].length != 0) {
+                var dadosIntervalos = obj['ponto']["func_intervalo_inicio"];
+                for (final i in dadosIntervalos) {
+                  //print(i);
+                  if (i['func_intervalo_fim'] == null) {
+                    urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.close;
+                    tituloBtnIntervalo =
+                        allUrlsPonto.intervalo.urlIntervalos?.closeText;
+                    dadosIntervalo.funcIntervaloInicioId = i['id'];
+                    showbtnPonto = false;
+                    //print('caiu aqui');
+                  }
+                }
+              }
+
+              //print(dadosIntervalo.toString());
+            }
+            if (dadosIntervalo != {} &&
+                dadosIntervalo.funcIntervaloInicioId == 0) {
+              showbtnPonto = true;
+            }
+            //showbtnPonto = true;
+          });
+        } catch (e) {
+          print(e);
+        }
+      }).catchError((e) {
+        /* print('caiu aqui');
+        print(e); */
+      }).timeout(Duration(seconds: 10));
     }
+  }
+
+  final pageSize = 10;
+  final controllerList = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    buscaHistorico();
+    controllerList.addListener(() {
+      if (controllerList.position.maxScrollExtent == controllerList.offset) {
+        buscaHistorico();
+      }
+    });
+  }
+
+  Future buscaHistorico() async {
+    if (isLoading) return;
+    isLoading = true;
+    var offset = historico.length;
+    //print(historico.length);
+    var limit = pageSize;
+    final Uri url = Uri.parse('$padraoUrl$historicoRoute?'
+        'offset=$offset'
+        '&limit=$limit'
+        //'${_buildSearchTermQuery(searchTerm)}',
+        );
+    //print(url);
+    try {
+      final response = await get(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      //print(response.statusCode);
+      if (response.statusCode == 200) {
+        //print(response.body);
+        //final List data = json.decode(response.body);
+        Map<String, dynamic> map = json.decode(response.body);
+        List<dynamic> data = map["historico"];
+        //print(data);
+        setState(() {
+          isLoading = false;
+          if (data.length < limit) {
+            maisDados = false;
+          }
+          historico.addAll(data);
+        });
+      }
+    } catch (e) {
+      print('caiu no erro');
+      print(e);
+    }
+  }
+
+  Future refresh() async {
+    setState(() {
+      isLoading = false;
+      maisDados = true;
+      historico.clear();
+    });
+    buscaHistorico();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-          color: Colors.black54,
-          alignment: Alignment.center,
-          padding: EdgeInsets.only(
-            top: 60,
-            left: 40,
-            right: 40,
-          ),
-          child: Column(
-            children: [
+        color: Colors.black54,
+        alignment: Alignment.center,
+        padding: EdgeInsets.only(
+          top: 60,
+          left: 40,
+          right: 40,
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 60,
+              margin: EdgeInsets.only(top: 5),
+              alignment: Alignment.centerLeft,
+              child: RoundedLoadingButton(
+                color: Colors.blue[300],
+                // successColor: Colors.amber,
+                controller: _btnSair,
+                onPressed: () => _sair(_btnSair),
+                valueColor: Colors.black,
+
+                borderRadius: 10,
+                child: Text(
+                  'Sair',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+            ),
+            if (showbtnPonto)
               Container(
                 height: 60,
-                margin: EdgeInsets.only(top: 5),
+                margin: EdgeInsets.only(top: 10),
                 alignment: Alignment.centerLeft,
                 // decoration: BoxDecoration(
                 //   gradient: LinearGradient(
@@ -451,13 +535,13 @@ class _HomePageState extends State<HomePage> {
                 child: RoundedLoadingButton(
                   color: Colors.blue[300],
                   // successColor: Colors.amber,
-                  controller: _btnSair,
-                  onPressed: () => _sair(_btnSair),
+                  controller: _btnBaterPonto,
+                  onPressed: () => _batendoPonto(_btnBaterPonto),
                   valueColor: Colors.black,
 
                   borderRadius: 10,
                   child: Text(
-                    'Sair',
+                    tituloBtnPonto,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 20,
@@ -465,120 +549,96 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              if (showbtnPonto)
-                Container(
-                  height: 60,
-                  margin: EdgeInsets.only(top: 10),
-                  alignment: Alignment.centerLeft,
-                  // decoration: BoxDecoration(
-                  //   gradient: LinearGradient(
-                  //     begin: Alignment.topLeft,
-                  //     end: Alignment.bottomRight,
-                  //     stops: [0.3, 1],
-                  //     colors: [
-                  //       //#E4E5E6
-                  //       Color(0xFF2980B9),
-                  //       Color(0XFF6DD5FA),
-                  //     ],
-                  //   ),
-                  //   borderRadius: BorderRadius.all(Radius.circular(5)),
-                  // ),
-                  child: RoundedLoadingButton(
-                    color: Colors.blue[300],
-                    // successColor: Colors.amber,
-                    controller: _btnBaterPonto,
-                    onPressed: () => _batendoPonto(_btnBaterPonto),
-                    valueColor: Colors.black,
+            if (showbtnIntervalo)
+              Container(
+                height: 60,
+                margin: EdgeInsets.only(top: 10),
+                alignment: Alignment.centerLeft,
+                child: RoundedLoadingButton(
+                  color: Colors.blue[300],
+                  // successColor: Colors.amber,
+                  controller: _btnBaterPontoIntervalo,
+                  onPressed: () => _batendoPontoIntervalo(
+                      _btnBaterPontoIntervalo, _btnBaterPonto),
+                  valueColor: Colors.black,
 
-                    borderRadius: 10,
-                    child: Text(
-                      tituloBtnPonto,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                      ),
+                  borderRadius: 10,
+                  child: Text(
+                    tituloBtnIntervalo,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
                     ),
                   ),
                 ),
-              if (showbtnIntervalo)
-                Container(
-                  height: 60,
-                  margin: EdgeInsets.only(top: 10),
-                  alignment: Alignment.centerLeft,
-                  child: RoundedLoadingButton(
-                    color: Colors.blue[300],
-                    // successColor: Colors.amber,
-                    controller: _btnBaterPontoIntervalo,
-                    onPressed: () => _batendoPontoIntervalo(
-                        _btnBaterPontoIntervalo, _btnBaterPonto),
-                    valueColor: Colors.black,
-
-                    borderRadius: 10,
-                    child: Text(
-                      tituloBtnIntervalo,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                ),
-              Flexible(
-                flex: 1,
-                child: Container(
-                  padding: EdgeInsets.only(bottom: 20),
-                  margin: EdgeInsets.only(top: 20),
-                  alignment: Alignment.centerLeft,
+              ),
+            Flexible(
+              flex: 1,
+              child: Container(
+                padding: EdgeInsets.only(bottom: 20),
+                margin: EdgeInsets.only(top: 20),
+                alignment: Alignment.centerLeft,
+                child: RefreshIndicator(
+                  onRefresh: refresh,
                   child: ListView.builder(
-                    itemCount: historico.length,
+                    controller: controllerList,
+                    itemCount: historico.length + 1,
                     itemBuilder: (context, index) {
-                      //print(historico[index]);
-                      var data = historico[index]['created_at'];
-                      final DateTime now = DateTime.parse(data);
-                      final DateFormat formatter =
-                          DateFormat('EEE, dd/MM/yyyy hh:mm:ss');
-                      final String formatted = formatter.format(now);
-                      String text = 'Bateu ponto';
-                      Icon icone = new Icon(Icons.meeting_room);
-                      var tipo = historico[index]['tipo'];
-                      if (tipo == 'ponto fim') {
-                        text = 'Fechou ponto';
-                        icone = Icon(Icons.door_back_door);
-                      } else if (tipo == 'intervalo inicio') {
-                        text = 'Saiu para intervalo';
-                        icone = Icon(Icons.bed);
-                      } else if (tipo == 'intervalo fim') {
-                        text = 'Voltou do intervalo';
-                        icone = Icon(Icons.directions_walk_outlined);
+                      if (index < historico.length) {
+                        final data = historico[index]['created_at'];
+                        final DateTime now = DateTime.parse(data);
+                        final DateFormat formatter =
+                            DateFormat('EEE, dd/MM/yyyy hh:mm:ss');
+                        final String formatted = formatter.format(now);
+                        String text = 'Bateu ponto';
+                        Icon icone = new Icon(Icons.meeting_room);
+                        var tipo = historico[index]['tipo'];
+                        if (tipo == 'ponto fim') {
+                          text = 'Fechou ponto';
+                          icone = Icon(Icons.door_back_door);
+                        } else if (tipo == 'intervalo inicio') {
+                          text = 'Saiu para intervalo';
+                          icone = Icon(Icons.bed);
+                        } else if (tipo == 'intervalo fim') {
+                          text = 'Voltou do intervalo';
+                          icone = Icon(Icons.directions_walk_outlined);
+                        }
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(
+                              color: const Color(0xFF000000),
+                              width: 1.0,
+                              style: BorderStyle.solid,
+                            ),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(10),
+                            ),
+                          ),
+                          child: ListTile(
+                            leading: icone,
+                            title: Text(text),
+                            subtitle: Text(formatted),
+                          ),
+                        );
+                      } else {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: maisDados
+                                ? CircularProgressIndicator()
+                                : Text('Fim do historico'),
+                          ),
+                        );
                       }
-
-                      //print(formatted);
-
-                      //var data = DateTime(historico[int.parse(index)]['created_at']);
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: const Color(0xFF000000),
-                            width: 1.0,
-                            style: BorderStyle.solid,
-                          ),
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(10),
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: icone,
-                          title: Text(text),
-                          subtitle: Text(formatted),
-                        ),
-                      );
                     },
                   ),
                 ),
               ),
-            ],
-          )),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -734,3 +794,62 @@ Future<Position> _determinePosition() async {
   // continue accessing the position of the device.
   return await Geolocator.getCurrentPosition();
 }
+
+
+// antiga lista de historico
+/* 
+Flexible(
+                flex: 1,
+                child: Container(
+                  padding: EdgeInsets.only(bottom: 20),
+                  margin: EdgeInsets.only(top: 20),
+                  alignment: Alignment.centerLeft,
+                  child: ListView.builder(
+                    itemCount: historico.length,
+                    itemBuilder: (context, index) {
+                      //print(historico[index]);
+                      var data = historico[index]['created_at'];
+                      final DateTime now = DateTime.parse(data);
+                      final DateFormat formatter =
+                          DateFormat('EEE, dd/MM/yyyy hh:mm:ss');
+                      final String formatted = formatter.format(now);
+                      String text = 'Bateu ponto';
+                      Icon icone = new Icon(Icons.meeting_room);
+                      var tipo = historico[index]['tipo'];
+                      if (tipo == 'ponto fim') {
+                        text = 'Fechou ponto';
+                        icone = Icon(Icons.door_back_door);
+                      } else if (tipo == 'intervalo inicio') {
+                        text = 'Saiu para intervalo';
+                        icone = Icon(Icons.bed);
+                      } else if (tipo == 'intervalo fim') {
+                        text = 'Voltou do intervalo';
+                        icone = Icon(Icons.directions_walk_outlined);
+                      }
+
+                      //print(formatted);
+
+                      //var data = DateTime(historico[int.parse(index)]['created_at']);
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFF000000),
+                            width: 1.0,
+                            style: BorderStyle.solid,
+                          ),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(10),
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: icone,
+                          title: Text(text),
+                          subtitle: Text(formatted),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+ */

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/src/foundation/key.dart';
-import 'package:flutter/src/widgets/framework.dart';
 import 'package:http/http.dart';
 import 'dart:convert';
 import 'package:localstorage/localstorage.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:rounded_loading_button/rounded_loading_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -20,6 +20,59 @@ class _LoginPageState extends State<LoginPage> {
   final _loginKey = GlobalKey<FormState>();
 
   final LocalStorage storage = new LocalStorage('todo_app');
+
+  final RoundedLoadingButtonController _btnLogar =
+      RoundedLoadingButtonController();
+
+  void _logando(RoundedLoadingButtonController controller) async {
+    var url = Uri.parse('http://192.168.0.6:8000/api/funcionario/login');
+    final response = await post(
+      url,
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        'email': _loginController.text,
+        'password': _passwordController.text,
+      }),
+    ).timeout(Duration(seconds: 10));
+    try {
+      if (response.statusCode == 401) {
+        controller.reset();
+        Fluttertoast.showToast(
+            msg: 'Email ou senha incorreto.',
+            toastLength: Toast.LENGTH_LONG,
+            fontSize: 20,
+            backgroundColor: Colors.red);
+        return;
+      } else if (response.statusCode != 200) {
+        controller.reset();
+        Fluttertoast.showToast(
+            msg: 'Algo deu errado.',
+            toastLength: Toast.LENGTH_LONG,
+            fontSize: 20,
+            backgroundColor: Colors.red);
+        return;
+      }
+
+      var obj = jsonDecode(response.body);
+
+      if (obj['token'] != null) {
+        //print(obj['token']);
+        storage.setItem('@FuncionarioToken', jsonEncode(obj));
+        Navigator.pushNamed(context, '/home');
+      }
+      controller.reset();
+    } catch (e) {
+      controller.reset();
+      Fluttertoast.showToast(
+          msg: 'Algo deu errado.',
+          toastLength: Toast.LENGTH_LONG,
+          fontSize: 20,
+          backgroundColor: Colors.red);
+      return;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,66 +151,20 @@ class _LoginPageState extends State<LoginPage> {
             Container(
               height: 60,
               alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: [0.3, 1],
-                  colors: [
-                    Color(0xFF0052D4),
-                    Color(0XFF6FB1FC),
-                  ],
-                ),
-                borderRadius: BorderRadius.all(Radius.circular(5)),
-              ),
-              child: SizedBox.expand(
-                child: TextButton(
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Login',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                      ),
-                    ),
+              child: RoundedLoadingButton(
+                color: Colors.blue[700],
+                // successColor: Colors.amber,
+                controller: _btnLogar,
+                onPressed: () => _logando(_btnLogar),
+                valueColor: Colors.white,
+
+                borderRadius: 10,
+                child: Text(
+                  'Login',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
                   ),
-                  onPressed: () {
-                    //Navigator.pushNamed(context, '/home');
-                    /* print(_loginController);
-                    print(_passwordController); */
-                    var url = Uri.parse(
-                        'http://192.168.0.6:8000/api/funcionario/login');
-                    post(
-                      url,
-                      headers: <String, String>{
-                        'Content-Type': 'application/json; charset=UTF-8',
-                      },
-                      body: jsonEncode(<String, String>{
-                        'email': _loginController.text,
-                        'password': _passwordController.text,
-                      }),
-                    )
-                        .then((value) {
-                          var response = value.body;
-
-                          var obj = jsonDecode(response);
-
-                          //print(obj.runtimeType);
-
-                          if (obj['token'] != null) {
-                            print(obj['token']);
-                            storage.setItem(
-                                '@FuncionarioToken', jsonEncode(obj));
-                            Navigator.pushNamed(context, '/home');
-                          }
-
-                          /* _loginController.text = '';
-                          _passwordController.text = ''; */
-                        })
-                        .catchError((e) => print(e))
-                        .timeout(Duration(seconds: 10));
-                  },
                 ),
               ),
             ),
