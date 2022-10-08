@@ -19,24 +19,45 @@ class _LoginPageState extends State<LoginPage> {
 
   final _loginKey = GlobalKey<FormState>();
 
-  final LocalStorage storage = new LocalStorage('todo_app');
+  final LocalStorage storage = new LocalStorage('bateponto_app');
+  _LoginPageState() {
+    verificacaoDeLogin();
+  }
+
+  void verificacaoDeLogin() async {
+    await storage.ready;
+    var storageJsonLogin = storage.getItem('@FuncionarioToken');
+    print(storageJsonLogin);
+    if (storageJsonLogin != null) {
+      var storageDecode = jsonDecode(storageJsonLogin);
+
+      var token = storageDecode['token'];
+      print(token);
+      if (token != null) {
+        Navigator.pushNamed(context, '/home');
+      }
+    }
+  }
 
   final RoundedLoadingButtonController _btnLogar =
       RoundedLoadingButtonController();
 
   void _logando(RoundedLoadingButtonController controller) async {
-    var url = Uri.parse('http://192.168.0.6:8000/api/funcionario/login');
-    final response = await post(
-      url,
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'email': _loginController.text,
-        'password': _passwordController.text,
-      }),
-    ).timeout(Duration(seconds: 10));
+    //https: //mr-ponto.herokuapp.com
+    //var url = Uri.parse('http://192.168.0.6:8000/api/funcionario/login');
+    var url = Uri.parse('https://mr-ponto.herokuapp.com/api/funcionario/login');
+
     try {
+      final response = await post(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'email': _loginController.text,
+          'password': _passwordController.text,
+        }),
+      ).timeout(Duration(seconds: 10));
       if (response.statusCode == 401) {
         controller.reset();
         Fluttertoast.showToast(
@@ -56,9 +77,9 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       var obj = jsonDecode(response.body);
-
+      //print(obj);
       if (obj['token'] != null) {
-        //print(obj['token']);
+        print(obj['token']);
         storage.setItem('@FuncionarioToken', jsonEncode(obj));
         Navigator.pushNamed(context, '/home');
       }

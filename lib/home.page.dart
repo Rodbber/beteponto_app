@@ -28,16 +28,19 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final LocalStorage storage = new LocalStorage('todo_app');
+  final LocalStorage storage = new LocalStorage('bateponto_app');
 
   var _pontoAberto;
-  var padraoUrl = "http://192.168.0.6:8000/api";
+
+  //var padraoUrl = "http://192.168.0.6:8000/api";
+  var padraoUrl = "https://mr-ponto.herokuapp.com/api";
   var logout;
 
   AllUrlsPonto allUrlsPonto = AllUrlsPonto();
   var urlPonto;
   var tituloBtnPonto;
   var urlIntervalo;
+
   var tituloBtnIntervalo;
   var pontoAbertoAs = null;
   var dadosIntervalo;
@@ -48,7 +51,7 @@ class _HomePageState extends State<HomePage> {
   bool showbtnPonto = false;
   bool maisDados = true;
   bool isLoading = false;
-  String historicoRoute = '/funcionario/ponto/historico/';
+  String historicoRoute = '/funcionario/ponto/historico';
 
   _HomePageState() {
     var storageJson = storage.getItem('@FuncionarioToken');
@@ -87,42 +90,54 @@ class _HomePageState extends State<HomePage> {
               //print(obj['ponto']["funcionario_ponto_final"]);
 
               if (obj['funcoes'].length != 0) {
-                funcao = obj['funcoes'][0];
+                //funcao = obj['funcoes'][0];
+                //print(funcao);
+
+              }
+              //print(obj['ponto']);
+              if (obj['intervalos'].length != 0) {
+                var intervalo0 = obj['intervalos'][0];
                 dadosIntervalo = DadosIntervalo(
-                    funcionarioPausaId: funcao['id'],
+                    funcionarioPausaId: intervalo0['id'],
                     funcIntervaloInicioId: 0,
                     funcionarioPontoInicioId: 0);
               }
-              if (obj['ponto']["funcionario_ponto_final"] == null) {
-                urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-                tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
 
-                if (obj['funcoes'].length != 0) {
-                  dadosIntervalo.funcionarioPontoInicioId = obj['ponto']['id'];
-                  showbtnIntervalo = true;
-                  //funcao = obj['funcoes'][0];
-                  //print(showbtnIntervalo);
-                }
+              if (obj['ponto'] != null) {
+                dadosIntervalo.funcionarioPontoInicioId = obj['ponto']['id'];
+                //print(obj['ponto']["funcionario_ponto_final"]);
+                if (obj['ponto']["funcionario_ponto_final"] == null) {
+                  urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+                  tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
 
-                //print(obj['ponto']["func_intervalo_inicio"]);
-                if (obj['ponto']["func_intervalo_inicio"].length != 0) {
-                  var dadosIntervalos = obj['ponto']["func_intervalo_inicio"];
-                  for (final i in dadosIntervalos) {
-                    //print(i);
-                    if (i['func_intervalo_fim'] == null) {
-                      urlIntervalo =
-                          allUrlsPonto.intervalo.urlIntervalos?.close;
-                      tituloBtnIntervalo =
-                          allUrlsPonto.intervalo.urlIntervalos?.closeText;
-                      dadosIntervalo.funcIntervaloInicioId = i['id'];
-                      showbtnPonto = false;
-                      //print('caiu aqui');
+                  // if (obj['funcoes'].length != 0) {
+                  //   dadosIntervalo.funcionarioPontoInicioId =
+                  //       obj['ponto']['id'];
+                  //   showbtnIntervalo = true;
+                  //   //funcao = obj['funcoes'][0];
+                  //   //print(showbtnIntervalo);
+                  // }
+                  if (obj['ponto']["func_intervalo_inicio"].length != 0) {
+                    var dadosIntervalos = obj['ponto']["func_intervalo_inicio"];
+                    for (final i in dadosIntervalos) {
+                      print(i);
+                      if (i['func_intervalo_fim'] == null) {
+                        urlIntervalo =
+                            allUrlsPonto.intervalo.urlIntervalos?.close;
+                        tituloBtnIntervalo =
+                            allUrlsPonto.intervalo.urlIntervalos?.closeText;
+                        dadosIntervalo.funcIntervaloInicioId = i['id'];
+                        showbtnPonto = false;
+                        //print('caiu aqui');
+                      }
                     }
                   }
-                }
+                  showbtnIntervalo = true;
 
-                //print(dadosIntervalo.toString());
+                  //print(dadosIntervalo.toString());
+                }
               }
+
               if (dadosIntervalo != {} &&
                   dadosIntervalo.funcIntervaloInicioId == 0) {
                 showbtnPonto = true;
@@ -162,17 +177,14 @@ class _HomePageState extends State<HomePage> {
         .timeout(Duration(seconds: 10));
   }
 
-  final RoundedLoadingButtonController _btnController1 =
-      RoundedLoadingButtonController();
-
   final RoundedLoadingButtonController _btnBaterPonto =
       RoundedLoadingButtonController();
 
   void _batendoPonto(RoundedLoadingButtonController controller) async {
     var url = Uri.parse(padraoUrl + urlPonto);
     Position position = await _determinePosition();
-    /* print(position);
-                      return; */
+    //print(position);
+    //return;
     try {
       final response = await post(
         url,
@@ -238,6 +250,7 @@ class _HomePageState extends State<HomePage> {
       RoundedLoadingButtonController controller2) async {
     var url = Uri.parse(padraoUrl + urlIntervalo);
     Map<String, dynamic> data = new Map<String, dynamic>();
+
     if (dadosIntervalo.funcIntervaloInicioId == 0) {
       data['funcionario_ponto_inicio_id'] =
           dadosIntervalo.funcionarioPontoInicioId;
@@ -247,10 +260,12 @@ class _HomePageState extends State<HomePage> {
     }
 
     Position position = await _determinePosition();
-    data['lat'] = position.latitude;
-    data['lng'] = position.longitude;
+    data['lat'] = position.latitude.toString();
+    data['lng'] = position.longitude.toString();
     /* print(data);
+    controller.reset();
     return; */
+
     try {
       var response = await post(
         url,
@@ -280,7 +295,7 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: Colors.red);
         return;
       }
-
+      //print(dataResponse);
       setState(() {
         if (dataResponse['message'] == 'Intervalo iniciado.') {
           urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.close;
@@ -292,6 +307,7 @@ class _HomePageState extends State<HomePage> {
           tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.openText;
           dadosIntervalo.funcIntervaloInicioId = 0;
           showbtnPonto = true;
+          controller2.reset();
         }
       });
       /* setState(() {
@@ -342,7 +358,7 @@ class _HomePageState extends State<HomePage> {
       //print(response);
       controller.reset();
       var obj = jsonDecode(responseBody);
-      storage.setItem('@FuncionarioToken', '');
+      storage.clear();
       Navigator.pop(context, '/');
     } catch (e) {
       Fluttertoast.showToast(
@@ -627,7 +643,7 @@ class _HomePageState extends State<HomePage> {
                           child: Center(
                             child: maisDados
                                 ? CircularProgressIndicator()
-                                : Text('Fim do historico'),
+                                : Text(''),
                           ),
                         );
                       }
@@ -686,6 +702,7 @@ class Intervalo {
         "/funcionario/ponto/intervalo/fim",
         "Finalizar intervalo");
   }
+
   getUrlsIntervalo() {
     return this.urlIntervalos;
   }
@@ -723,7 +740,7 @@ class DadosIntervalo {
 }
 
 Future _getStatusPonto(padraoUrl) async {
-  final LocalStorage storage = new LocalStorage('todo_app');
+  final LocalStorage storage = new LocalStorage('bateponto_app');
   var storageJson = storage.getItem('@FuncionarioToken');
 
   var storageDecode = jsonDecode(storageJson);
@@ -741,7 +758,7 @@ Future _getStatusPonto(padraoUrl) async {
 }
 
 Future _getHistoricoPontos(padraoUrl) async {
-  final LocalStorage storage = new LocalStorage('todo_app');
+  final LocalStorage storage = new LocalStorage('bateponto_app');
   var storageJson = storage.getItem('@FuncionarioToken');
 
   var storageDecode = jsonDecode(storageJson);
