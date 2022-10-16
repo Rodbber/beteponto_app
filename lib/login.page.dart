@@ -44,8 +44,8 @@ class _LoginPageState extends State<LoginPage> {
 
   void _logando(RoundedLoadingButtonController controller) async {
     //https: //mr-ponto.herokuapp.com
-    //var url = Uri.parse('http://192.168.0.6:8000/api/funcionario/login');
-    var url = Uri.parse('https://mr-ponto.herokuapp.com/api/funcionario/login');
+    var url = Uri.parse('http://192.168.0.6:8000/api/funcionario/login');
+    //var url = Uri.parse('https://mr-ponto.herokuapp.com/api/funcionario/login');
 
     try {
       final response = await post(

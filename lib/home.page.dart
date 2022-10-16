@@ -20,6 +20,9 @@ import 'dart:async';
 //import 'package:bateponto_app/character_summary.dart';
 //import 'package:bateponto_app/remote_api.dart';
 
+import 'package:bateponto_app/Controle/dadosPonto.dart';
+import 'package:bateponto_app/Controle/dadosIntervalo.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -32,16 +35,18 @@ class _HomePageState extends State<HomePage> {
 
   var _pontoAberto;
 
-  //var padraoUrl = "http://192.168.0.6:8000/api";
-  var padraoUrl = "https://mr-ponto.herokuapp.com/api";
+  var padraoUrl = "http://192.168.0.3:8000/api";
+  //var padraoUrl = "https://mr-ponto.herokuapp.com/api";
   var logout;
 
-  AllUrlsPonto allUrlsPonto = AllUrlsPonto();
-  var urlPonto;
-  var tituloBtnPonto;
-  var urlIntervalo;
+  //final AllUrlsPonto allUrlsPonto = AllUrlsPonto();
+  final ponto = AllUrlsPonto().ponto;
+  final intervalo = AllUrlsPonto().intervalo;
+  String urlPonto = '';
+  String tituloBtnPonto = '';
+  String urlIntervalo = '';
+  String tituloBtnIntervalo = '';
 
-  var tituloBtnIntervalo;
   var pontoAbertoAs = null;
   var dadosIntervalo;
   List historico = [];
@@ -53,6 +58,15 @@ class _HomePageState extends State<HomePage> {
   bool isLoading = false;
   String historicoRoute = '/funcionario/ponto/historico';
 
+  alteraStateBtns() {
+    setState(() {
+      urlPonto = ponto.urlAtual;
+      tituloBtnPonto = ponto.textoAtual;
+      urlIntervalo = intervalo.urlAtual;
+      tituloBtnIntervalo = intervalo.textoAtual;
+    });
+  }
+
   _HomePageState() {
     var storageJson = storage.getItem('@FuncionarioToken');
 
@@ -61,10 +75,15 @@ class _HomePageState extends State<HomePage> {
     token = storageDecode['token'];
 
     _pontoAberto = null;
-    urlPonto = allUrlsPonto.ponto.urlPontos?.open;
-    tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.openText;
-    urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.open;
-    tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.openText;
+    logout = padraoUrl + "/funcionario/logout";
+    /* print(allUrlsPonto.ponto);
+    return; */
+
+    urlPonto = ponto.urlAtual;
+    tituloBtnPonto = ponto.textoAtual;
+
+    urlIntervalo = intervalo.urlAtual;
+    tituloBtnIntervalo = intervalo.textoAtual;
 
     showbtnIntervalo = false;
 
@@ -74,7 +93,6 @@ class _HomePageState extends State<HomePage> {
 
     funcao = null;
 
-    logout = padraoUrl + "/funcionario/logout";
     _getStatusPonto(padraoUrl)
         .then((value) {
           try {
@@ -97,18 +115,17 @@ class _HomePageState extends State<HomePage> {
               //print(obj['ponto']);
               if (obj['intervalos'].length != 0) {
                 var intervalo0 = obj['intervalos'][0];
-                dadosIntervalo = DadosIntervalo(
-                    funcionarioPausaId: intervalo0['id'],
-                    funcIntervaloInicioId: 0,
-                    funcionarioPontoInicioId: 0);
+                dadosIntervalo = DadosIntervalo(intervalo0['id'], 0);
               }
 
               if (obj['ponto'] != null) {
                 dadosIntervalo.funcionarioPontoInicioId = obj['ponto']['id'];
                 //print(obj['ponto']["funcionario_ponto_final"]);
                 if (obj['ponto']["funcionario_ponto_final"] == null) {
-                  urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-                  tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
+                  ponto.fechar();
+                  alteraStateBtns();
+                  /* urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+                  tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText; */
 
                   // if (obj['funcoes'].length != 0) {
                   //   dadosIntervalo.funcionarioPontoInicioId =
@@ -120,12 +137,14 @@ class _HomePageState extends State<HomePage> {
                   if (obj['ponto']["func_intervalo_inicio"].length != 0) {
                     var dadosIntervalos = obj['ponto']["func_intervalo_inicio"];
                     for (final i in dadosIntervalos) {
-                      print(i);
+                      //print(i);
                       if (i['func_intervalo_fim'] == null) {
-                        urlIntervalo =
+                        intervalo.fechar();
+                        alteraStateBtns();
+                        /* urlIntervalo =
                             allUrlsPonto.intervalo.urlIntervalos?.close;
                         tituloBtnIntervalo =
-                            allUrlsPonto.intervalo.urlIntervalos?.closeText;
+                            allUrlsPonto.intervalo.urlIntervalos?.closeText; */
                         dadosIntervalo.funcIntervaloInicioId = i['id'];
                         showbtnPonto = false;
                         //print('caiu aqui');
@@ -139,7 +158,7 @@ class _HomePageState extends State<HomePage> {
               }
 
               if (dadosIntervalo != {} &&
-                  dadosIntervalo.funcIntervaloInicioId == 0) {
+                  dadosIntervalo.funcIntervaloInicioId == null) {
                 showbtnPonto = true;
               }
               //showbtnPonto = true;
@@ -150,7 +169,7 @@ class _HomePageState extends State<HomePage> {
         })
         .catchError((e) => print(e))
         .timeout(Duration(seconds: 10));
-    //refresh()
+    //refresh();
   }
 
   void atualizaHistorico() {
@@ -214,16 +233,14 @@ class _HomePageState extends State<HomePage> {
 
       setState(() {
         if (data['message'] == 'Ponto iniciado.') {
-          urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-          tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
+          ponto.fechar();
+          alteraStateBtns();
           showbtnIntervalo = true;
-          //showbtnPonto = false;
           dadosIntervalo.funcionarioPontoInicioId = data['ponto_id'];
         } else {
-          urlPonto = allUrlsPonto.ponto.urlPontos?.open;
-          tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.openText;
+          ponto.abrir();
           showbtnIntervalo = false;
-          dadosIntervalo.funcionarioPontoInicioId = 0;
+          dadosIntervalo.funcionarioPontoInicioId = null;
         }
       });
       refresh();
@@ -251,7 +268,7 @@ class _HomePageState extends State<HomePage> {
     var url = Uri.parse(padraoUrl + urlIntervalo);
     Map<String, dynamic> data = new Map<String, dynamic>();
 
-    if (dadosIntervalo.funcIntervaloInicioId == 0) {
+    if (dadosIntervalo.funcIntervaloInicioId != null) {
       data['funcionario_ponto_inicio_id'] =
           dadosIntervalo.funcionarioPontoInicioId;
       data['funcionario_pausa_id'] = dadosIntervalo.funcionarioPausaId;
@@ -298,14 +315,18 @@ class _HomePageState extends State<HomePage> {
       //print(dataResponse);
       setState(() {
         if (dataResponse['message'] == 'Intervalo iniciado.') {
-          urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.close;
-          tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.closeText;
+          intervalo.fechar();
+          alteraStateBtns();
+          /* urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.close;
+          tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.closeText; */
           dadosIntervalo.funcIntervaloInicioId = dataResponse['intervalo_id'];
           showbtnPonto = false;
         } else {
-          urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.open;
-          tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.openText;
-          dadosIntervalo.funcIntervaloInicioId = 0;
+          /* urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.open;
+          tituloBtnIntervalo = allUrlsPonto.intervalo.urlIntervalos?.openText; */
+          intervalo.abrir();
+          alteraStateBtns();
+          dadosIntervalo.funcIntervaloInicioId = null;
           showbtnPonto = true;
           controller2.reset();
         }
@@ -382,15 +403,13 @@ class _HomePageState extends State<HomePage> {
 
             if (obj['funcoes'].length != 0) {
               funcao = obj['funcoes'][0];
-              dadosIntervalo = DadosIntervalo(
-                  funcionarioPausaId: funcao['id'],
-                  funcIntervaloInicioId: 0,
-                  funcionarioPontoInicioId: 0);
+              dadosIntervalo = DadosIntervalo(funcao['id'], 0);
             }
             if (obj['ponto']["funcionario_ponto_final"] == null) {
-              urlPonto = allUrlsPonto.ponto.urlPontos?.close;
-              tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText;
-
+              /* urlPonto = allUrlsPonto.ponto.urlPontos?.close;
+              tituloBtnPonto = allUrlsPonto.ponto.urlPontos?.closeText; */
+              ponto.fechar();
+              alteraStateBtns();
               if (obj['funcoes'].length != 0) {
                 dadosIntervalo.funcionarioPontoInicioId = obj['ponto']['id'];
                 showbtnIntervalo = true;
@@ -404,9 +423,8 @@ class _HomePageState extends State<HomePage> {
                 for (final i in dadosIntervalos) {
                   //print(i);
                   if (i['func_intervalo_fim'] == null) {
-                    urlIntervalo = allUrlsPonto.intervalo.urlIntervalos?.close;
-                    tituloBtnIntervalo =
-                        allUrlsPonto.intervalo.urlIntervalos?.closeText;
+                    intervalo.fechar();
+                    alteraStateBtns();
                     dadosIntervalo.funcIntervaloInicioId = i['id'];
                     showbtnPonto = false;
                     //print('caiu aqui');
@@ -414,13 +432,14 @@ class _HomePageState extends State<HomePage> {
                 }
               }
 
-              //print(dadosIntervalo.toString());
+              //   //print(dadosIntervalo.toString());
+              // }
+              if (dadosIntervalo != {} &&
+                  dadosIntervalo.funcIntervaloInicioId == null) {
+                showbtnPonto = true;
+              }
+              //showbtnPonto = true;
             }
-            if (dadosIntervalo != {} &&
-                dadosIntervalo.funcIntervaloInicioId == 0) {
-              showbtnPonto = true;
-            }
-            //showbtnPonto = true;
           });
         } catch (e) {
           print(e);
@@ -588,154 +607,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-            Flexible(
-              flex: 1,
-              child: Container(
-                padding: EdgeInsets.only(bottom: 20),
-                margin: EdgeInsets.only(top: 20),
-                alignment: Alignment.centerLeft,
-                child: RefreshIndicator(
-                  onRefresh: refresh,
-                  child: ListView.builder(
-                    controller: controllerList,
-                    itemCount: historico.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index < historico.length) {
-                        final data = historico[index]['created_at'];
-                        final DateTime now = DateTime.parse(data);
-                        final DateFormat formatter =
-                            DateFormat('EEE, dd/MM/yyyy hh:mm:ss');
-                        final String formatted = formatter.format(now);
-                        String text = 'Bateu ponto';
-                        Icon icone = new Icon(Icons.meeting_room);
-                        var tipo = historico[index]['tipo'];
-                        if (tipo == 'ponto fim') {
-                          text = 'Fechou ponto';
-                          icone = Icon(Icons.door_back_door);
-                        } else if (tipo == 'intervalo inicio') {
-                          text = 'Saiu para intervalo';
-                          icone = Icon(Icons.bed);
-                        } else if (tipo == 'intervalo fim') {
-                          text = 'Voltou do intervalo';
-                          icone = Icon(Icons.directions_walk_outlined);
-                        }
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFF000000),
-                              width: 1.0,
-                              style: BorderStyle.solid,
-                            ),
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(10),
-                            ),
-                          ),
-                          child: ListTile(
-                            leading: icone,
-                            title: Text(text),
-                            subtitle: Text(formatted),
-                          ),
-                        );
-                      } else {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Center(
-                            child: maisDados
-                                ? CircularProgressIndicator()
-                                : Text(''),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
-  }
-}
-
-class Tipos {
-  String? open = '';
-  String openText = '';
-  String close = '';
-  String closeText = '';
-  Tipos(String open, String openText, String close, String closeText) {
-    this.open = open;
-    this.openText = openText;
-    this.close = close;
-    this.closeText = closeText;
-  }
-
-  @override
-  String toString() {
-    return '{open: ${this.open}, openText: ${this.openText}, close: ${this.close}, closeText: ${this.closeText}}';
-  }
-}
-
-class Ponto {
-  Tipos? urlPontos;
-  Ponto() {
-    urlPontos = Tipos("/funcionario/ponto/inicio", "Bater ponto",
-        "/funcionario/ponto/fim", "Fechar ponto");
-  }
-  getUrlsPonto() {
-    return this.urlPontos;
-  }
-
-  @override
-  String toString() {
-    return '{urlPontos: ${this.urlPontos}}';
-  }
-}
-
-class Intervalo {
-  Tipos? urlIntervalos;
-  Intervalo() {
-    urlIntervalos = Tipos(
-        "/funcionario/ponto/intervalo/inicio",
-        "Iniciar intervalo",
-        "/funcionario/ponto/intervalo/fim",
-        "Finalizar intervalo");
-  }
-
-  getUrlsIntervalo() {
-    return this.urlIntervalos;
-  }
-
-  @override
-  String toString() {
-    return '{urlIntervalos: ${this.urlIntervalos}}';
-  }
-}
-
-class AllUrlsPonto {
-  Ponto ponto = Ponto();
-  Intervalo intervalo = Intervalo();
-  AllUrlsPonto();
-  @override
-  String toString() {
-    return '{ponto: ${this.ponto}, intervalo: ${this.intervalo}}';
-  }
-}
-
-class DadosIntervalo {
-  int? funcionarioPontoInicioId;
-  int? funcionarioPausaId;
-  int? funcIntervaloInicioId;
-
-  DadosIntervalo(
-      {this.funcionarioPontoInicioId,
-      this.funcionarioPausaId,
-      this.funcIntervaloInicioId});
-
-  @override
-  String toString() {
-    return '{funcionarioPontoInicioId: ${this.funcionarioPontoInicioId}, funcionarioPausaId: ${this.funcionarioPausaId}, funcIntervaloInicioId: ${this.funcIntervaloInicioId}}';
   }
 }
 
@@ -811,7 +686,6 @@ Future<Position> _determinePosition() async {
   // continue accessing the position of the device.
   return await Geolocator.getCurrentPosition();
 }
-
 
 // antiga lista de historico
 /* 
