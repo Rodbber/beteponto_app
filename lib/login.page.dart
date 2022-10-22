@@ -5,6 +5,8 @@ import 'package:localstorage/localstorage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:rounded_loading_button/rounded_loading_button.dart';
 
+import 'package:bateponto_app/routes/routesAPIs.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -27,12 +29,12 @@ class _LoginPageState extends State<LoginPage> {
   void verificacaoDeLogin() async {
     await storage.ready;
     var storageJsonLogin = storage.getItem('@FuncionarioToken');
-    print(storageJsonLogin);
+    //print(storageJsonLogin);
     if (storageJsonLogin != null) {
       var storageDecode = jsonDecode(storageJsonLogin);
 
       var token = storageDecode['token'];
-      print(token);
+      //print(token);
       if (token != null) {
         Navigator.pushNamed(context, '/home');
       }
@@ -44,9 +46,10 @@ class _LoginPageState extends State<LoginPage> {
 
   void _logando(RoundedLoadingButtonController controller) async {
     //https: //mr-ponto.herokuapp.com
-    var url = Uri.parse('http://192.168.0.6:8000/api/funcionario/login');
+    Uri url = Uri.parse(Routes.login());
+    //var url = Uri.parse('http://192.168.0.6:8000/api/funcionario/login');
     //var url = Uri.parse('https://mr-ponto.herokuapp.com/api/funcionario/login');
-
+    print(url);
     try {
       final response = await post(
         url,
@@ -67,6 +70,7 @@ class _LoginPageState extends State<LoginPage> {
             backgroundColor: Colors.red);
         return;
       } else if (response.statusCode != 200) {
+        print(response.statusCode);
         controller.reset();
         Fluttertoast.showToast(
             msg: 'Algo deu errado.',
@@ -85,6 +89,7 @@ class _LoginPageState extends State<LoginPage> {
       }
       controller.reset();
     } catch (e) {
+      print(e);
       controller.reset();
       Fluttertoast.showToast(
           msg: 'Algo deu errado.',

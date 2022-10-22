@@ -3,7 +3,7 @@ class DadosIntervalo {
   int? _funcionarioPausaId;
   int? _funcIntervaloInicioId;
 
-  DadosIntervalo(this._funcionarioPontoInicioId, this._funcionarioPausaId);
+  DadosIntervalo();
 
   int? get funcionarioPontoInicioId {
     return _funcionarioPontoInicioId;
@@ -26,7 +26,7 @@ class DadosIntervalo {
   }
 
   set funcIntervaloInicioId(funcIntervaloInicioId) {
-    _funcionarioPontoInicioId = funcIntervaloInicioId;
+    _funcIntervaloInicioId = funcIntervaloInicioId;
   }
 
   @override
