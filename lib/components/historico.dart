@@ -6,6 +6,9 @@ import 'package:intl/intl.dart';
 
 import 'package:bateponto_app/routes/routesAPIs.dart';
 
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
 class CardItem {
   final String icone;
   final String tipo;
@@ -95,6 +98,7 @@ class _HistoricoState extends State<Historico> {
   }
 
   Widget buildCard(historico, index) {
+    initializeDateFormatting('pt_BR', null);
     if (index >= historico.length) {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 32),
@@ -106,10 +110,14 @@ class _HistoricoState extends State<Historico> {
     final item = historico[index];
     final data = item['created_at'];
     final DateTime now = DateTime.parse(data);
-    final DateFormat dataformatter = DateFormat('EEE, dd/MM/yyyy');
-    final DateFormat horaformatter = DateFormat('hh:mm:ss');
-    final String dataformatted = dataformatter.format(now);
-    final String horaformatted = horaformatter.format(now);
+    final DateTime novaData = DateTime(
+        now.year, now.month, now.day, now.hour - 3, now.minute, now.second);
+
+    final DateFormat dataformatter = DateFormat('EEE, dd/MM/yyyy', 'pt_BR');
+    final DateFormat horaformatter = DateFormat('HH:mm:ss');
+    final String dataformatted = dataformatter.format(novaData);
+    final String horaformatted = horaformatter.format(novaData);
+
     String text = 'Ponto: inicio';
     Icon icone = new Icon(Icons.meeting_room);
     var tipo = item['tipo'];
@@ -147,67 +155,5 @@ class _HistoricoState extends State<Historico> {
         ),
       ),
     );
-    // else {
-    //   return Padding(
-    //     padding: EdgeInsets.symmetric(horizontal: 32),
-    //     child: Center(
-    //       child: maisDados ? CircularProgressIndicator() : Text(''),
-    //     ),
-    //   );
-    // }
   }
 }
-
-
-/* 
-{
-            if (index < historico.length) {
-              final data = historico[index]['created_at'];
-              final DateTime now = DateTime.parse(data);
-              final DateFormat formatter =
-                  DateFormat('EEE, dd/MM/yyyy hh:mm:ss');
-              final String formatted = formatter.format(now);
-              String text = 'Ponto: inicio';
-              Icon icone = new Icon(Icons.meeting_room);
-              var tipo = historico[index]['tipo'];
-              if (tipo == 'ponto fim') {
-                text = 'Ponto: fim';
-                icone = Icon(Icons.door_back_door);
-              } else if (tipo == 'intervalo inicio') {
-                text = 'Intervalo: inicio';
-                icone = Icon(Icons.bed);
-              } else if (tipo == 'intervalo fim') {
-                text = 'Intervalo: fim';
-                icone = Icon(Icons.directions_walk_outlined);
-              }
-              return Container(
-                width: 150,
-                //height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(
-                    color: const Color(0xFF000000),
-                    width: 1.0,
-                    style: BorderStyle.solid,
-                  ),
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(10),
-                  ),
-                ),
-                child: ListTile(
-                  //onTap: () => print("clicado"),
-                  leading: icone,
-                  title: Text(text),
-                  subtitle: Text(formatted),
-                ),
-              );
-            } else {
-              return Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(
-                  child: maisDados ? CircularProgressIndicator() : Text(''),
-                ),
-              );
-            }
-          },
- */
